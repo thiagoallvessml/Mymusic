@@ -8,12 +8,15 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
+  email     String?  @unique
+  name      String   @unique
   password  String
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  role      String   @default("USER")
+  churchName     String?  @unique
+  churchPassword String?
 
   songs     Song[]
   playlists Playlist[]

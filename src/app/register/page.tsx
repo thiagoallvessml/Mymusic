@@ -6,6 +6,7 @@ import Link from 'next/link'
 export default function RegisterPage() {
   const router = useRouter()
   const [form, setForm] = useState({ name: '', email: '', password: '' })
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -26,12 +27,14 @@ export default function RegisterPage() {
       setLoading(false)
     }
   }
-
   const field = (label: string, key: keyof typeof form, type = 'text', placeholder = '') => (
     <div>
       <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>{label}</label>
       <input
-        type={type} value={form[key]} required placeholder={placeholder}
+        type={type} 
+        value={form[key as keyof typeof form]} 
+        required 
+        placeholder={placeholder}
         onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
         style={{
           width: '100%', padding: '12px 14px', background: 'var(--bg-3)',
@@ -58,7 +61,7 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {field('Nome', 'name', 'text', 'Seu nome')}
+          {field('Usuário', 'name', 'text', 'Seu nome de usuário')}
           {field('Email', 'email', 'email', 'seu@email.com')}
           {field('Senha', 'password', 'password', '••••••••')}
 

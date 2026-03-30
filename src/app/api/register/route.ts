@@ -7,12 +7,17 @@ export async function POST(req: NextRequest) {
     const { name, email, password } = await req.json()
 
     if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Campos obrigatórios' }, { status: 400 })
+      return NextResponse.json({ error: 'Nome, email e senha são obrigatórios' }, { status: 400 })
     }
 
-    const exists = await prisma.user.findUnique({ where: { email } })
-    if (exists) {
-      return NextResponse.json({ error: 'Email já cadastrado' }, { status: 409 })
+    const existsName = await prisma.user.findUnique({ where: { name } })
+    if (existsName) {
+      return NextResponse.json({ error: 'Este nome de usuário já está em uso' }, { status: 409 })
+    }
+
+    const existsEmail = await prisma.user.findUnique({ where: { email } })
+    if (existsEmail) {
+      return NextResponse.json({ error: 'Este email já está em uso' }, { status: 409 })
     }
 
     const hashed = await bcrypt.hash(password, 12)

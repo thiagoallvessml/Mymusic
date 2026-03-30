@@ -5,8 +5,8 @@ import Player from '@/components/player/Player'
 export function GlobalPlayer() {
   const pathname = usePathname()
 
-  // Do not render player on auth pages
-  if (pathname === '/login' || pathname === '/register') {
+  // Do not render player on auth pages or isolated church page
+  if (pathname === '/login' || pathname === '/register' || pathname.startsWith('/church')) {
     return null
   }
 

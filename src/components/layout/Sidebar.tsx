@@ -72,6 +72,10 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
             <History size={20} />
             <span className="sidebar-text">Histórico</span>
           </a>
+          <a href="/church" className={`sidebar-nav-link ${pathname === '/church' ? 'active' : ''}`} style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+            <Music2 size={20} color="var(--accent3)" />
+            <span className="sidebar-text">Modo Igreja</span>
+          </a>
         </nav>
 
         {/* User Profile */}

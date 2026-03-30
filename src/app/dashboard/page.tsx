@@ -6,7 +6,7 @@ import { usePlayerStore, Song } from '@/store/playerStore'
 import Player from '@/components/player/Player'
 import {
   Search, Plus, LayoutDashboard, Library, Heart, ListMusic,
-  History, Music2, Clock, Menu, X
+  History, Music2, Clock, Menu, X, Settings
 } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
 
@@ -17,6 +17,36 @@ export default function DashboardPage() {
   
   const [songs, setSongs] = useState<Song[]>([])
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const [churchModal, setChurchModal] = useState(false)
+  const [churchName, setChurchName] = useState('')
+  const [churchPassword, setChurchPassword] = useState('')
+  const [churchSaving, setChurchSaving] = useState(false)
+  const [churchMsg, setChurchMsg] = useState('')
+
+  useEffect(() => {
+    if (churchModal) {
+      fetch('/api/user/church').then(r => r.json()).then(d => {
+        if (d.churchName) setChurchName(d.churchName)
+      })
+    }
+  }, [churchModal])
+
+  async function saveChurch() {
+    setChurchSaving(true)
+    setChurchMsg('')
+    const res = await fetch('/api/user/church', {
+      method: 'POST',
+      body: JSON.stringify({ churchName, churchPassword })
+    })
+    const data = await res.json()
+    if (data.error) setChurchMsg(data.error)
+    else {
+      setChurchMsg('Salvo com sucesso!')
+      setTimeout(() => setChurchModal(false), 2000)
+    }
+    setChurchSaving(false)
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -88,15 +118,25 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <button style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            background: 'var(--accent)', color: '#000',
-            padding: '10px 20px', borderRadius: '100px',
-            fontWeight: 600, fontSize: '13px', transition: 'background 0.2s', opacity: 0.9,
-            whiteSpace: 'nowrap'
-          }}>
-            <Plus size={16} /> <span className="hide-on-mobile">Adicionar música</span>
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={() => setChurchModal(true)} style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)',
+              padding: '10px 20px', borderRadius: '100px',
+              fontWeight: 600, fontSize: '13px', transition: 'background 0.2s'
+            }}>
+              <Settings size={16} /> <span className="hide-on-mobile">Modo Igreja</span>
+            </button>
+            <button style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'var(--accent)', color: '#000',
+              padding: '10px 20px', borderRadius: '100px',
+              fontWeight: 600, fontSize: '13px', transition: 'background 0.2s', opacity: 0.9,
+              whiteSpace: 'nowrap'
+            }}>
+              <Plus size={16} /> <span className="hide-on-mobile">Adicionar música</span>
+            </button>
+          </div>
         </header>
 
         {/* Dashboard Content */}
@@ -257,6 +297,72 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
+
+      {churchModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+        }}>
+          <div style={{
+            background: 'var(--bg-2)', width: '100%', maxWidth: '400px',
+            borderRadius: '16px', border: '1px solid var(--border)', padding: '24px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Acesso Modo Igreja</h2>
+              <button onClick={() => setChurchModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.5 }}>
+              Defina um nome e senha exclusivos para que a equipe de mídia ou culto acesse diretamente o ambiente <strong>/church</strong> com as músicas da sua biblioteca.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>Usuário da Igreja</label>
+                <input
+                  type="text" value={churchName} onChange={e => setChurchName(e.target.value)}
+                  placeholder="Ex: IgrejaSede"
+                  style={{
+                    width: '100%', padding: '10px 14px', background: 'var(--bg-3)',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                    color: 'var(--text)', fontSize: '14px', outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>Senha de Acesso</label>
+                <input
+                  type="password" value={churchPassword} onChange={e => setChurchPassword(e.target.value)}
+                  placeholder={churchName ? "(Deixe em branco para manter a atual)" : "Senha do painel"}
+                  style={{
+                    width: '100%', padding: '10px 14px', background: 'var(--bg-3)',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                    color: 'var(--text)', fontSize: '14px', outline: 'none'
+                  }}
+                />
+              </div>
+              
+              {churchMsg && <p style={{ fontSize: '13px', color: churchMsg.includes('sucesso') ? '#22c55e' : 'var(--danger)' }}>{churchMsg}</p>}
+
+              <button
+                onClick={saveChurch}
+                disabled={churchSaving}
+                style={{
+                  padding: '12px', background: 'var(--accent)', color: '#000',
+                  borderRadius: 'var(--radius)', fontWeight: 600, fontSize: '14px',
+                  marginTop: '8px', opacity: churchSaving ? 0.7 : 1, cursor: churchSaving ? 'wait' : 'pointer',
+                  border: 'none', width: '100%'
+                }}
+              >
+                {churchSaving ? 'Salvando...' : 'Salvar Acesso'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dynamic CSS injection via generic style tag inside JSX for simple classes that need dynamic display block overrides */}
       <style dangerouslySetInnerHTML={{__html: `

@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,12 +15,17 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const res = await signIn('credentials', { email, password, redirect: false })
+    const res = await signIn('credentials', { name, password, redirect: false })
     if (res?.error) {
-      setError('Email ou senha inválidos')
+      setError('Nome ou senha inválidos')
       setLoading(false)
     } else {
-      router.push('/library')
+      const session = await getSession()
+      if ((session?.user as any)?.role === 'CHURCH') {
+        router.push('/church')
+      } else {
+        router.push('/library')
+      }
     }
   }
 
@@ -41,10 +46,10 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>Email</label>
+            <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>Usuário</label>
             <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)} required
-              placeholder="seu@email.com"
+              type="text" value={name} onChange={e => setName(e.target.value)} required
+              placeholder="Seu nome"
               style={{
                 width: '100%', padding: '12px 14px', background: 'var(--bg-3)',
                 border: '1px solid var(--border)', borderRadius: 'var(--radius)',
