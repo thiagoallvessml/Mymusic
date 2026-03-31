@@ -63,7 +63,15 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: draft.audioFile!.name, contentType: draft.audioFile!.type, size: draft.audioFile!.size }),
         })
-        const { uploadUrl, key } = await presignRes.json()
+        const presignData = await presignRes.json()
+
+        if (!presignRes.ok) {
+          alert('Negado: ' + presignData.error)
+          setIsUploading(false)
+          return
+        }
+        
+        const { uploadUrl, key } = presignData
 
         // 2. Upload audio to R2
         await fetch(uploadUrl, { method: 'PUT', body: draft.audioFile, headers: { 'Content-Type': draft.audioFile!.type } })

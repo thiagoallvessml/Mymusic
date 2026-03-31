@@ -92,6 +92,11 @@ export default function StudioPage() {
   const [previewEffect, setPreviewEffect] = useState<Tone.PitchShift | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   
+  const [showPaywall, setShowPaywall] = useState(false)
+  
+  const userPlan = (session?.user as any)?.plan || 'FREE'
+  const studioCredits = (session?.user as any)?.studioCredits || 0
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status])
@@ -102,7 +107,6 @@ export default function StudioPage() {
     })
     
     return () => {
-      // cleanup preview on unmount
       if (previewPlayer) {
         previewPlayer.stop()
         previewPlayer.dispose()
@@ -113,7 +117,6 @@ export default function StudioPage() {
     }
   }, [])
 
-  // Limpa o player sempre que trocar de música ou tom (evita poluição na RAM)
   useEffect(() => {
     setIsPlaying(false)
     if (previewPlayer) previewPlayer.stop()
@@ -121,6 +124,11 @@ export default function StudioPage() {
 
   async function handlePreview() {
     if (!selectedSong) return
+    if (userPlan !== 'ADVANCED' && studioCredits <= 0) {
+      setShowPaywall(true)
+      return
+    }
+    
     setErrorLine('')
     try {
       await Tone.start()
@@ -183,6 +191,11 @@ export default function StudioPage() {
 
   async function processAndSave() {
     if (!selectedSong) return
+    if (userPlan !== 'ADVANCED' && studioCredits <= 0) {
+      setShowPaywall(true)
+      return
+    }
+
     if (isProcessing) return
     
     setIsProcessing(true)
@@ -241,12 +254,14 @@ export default function StudioPage() {
         body: JSON.stringify({
           filename,
           contentType: 'audio/wav',
-          size: wavBlob.size
+          size: wavBlob.size,
+          isStudioAction: true
         })
       })
       
-      if (!uploadRes.ok) throw new Error("Erro ao gerar URL de upload")
-      const { uploadUrl, key } = await uploadRes.json()
+      const uploadData = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadData.error || "Erro ao gerar URL de upload")
+      const { uploadUrl, key } = uploadData
       setProgressPct(75)
 
       // 75-90%: Upload to R2
@@ -274,11 +289,13 @@ export default function StudioPage() {
           fileKey: key,
           duration: Math.round(duration),
           size: wavBlob.size,
-          mimeType: 'audio/wav'
+          mimeType: 'audio/wav',
+          isStudioAction: true
         })
       })
       
-      if (!metaRes.ok) throw new Error("Erro ao salvar metadados")
+      const metaData = await metaRes.json()
+      if (!metaRes.ok) throw new Error(metaData.error || "Erro ao salvar metadados")
       
       setProgressPct(100)
       setProgressMsg('Salvo com sucesso na sua biblioteca!')
@@ -480,6 +497,52 @@ export default function StudioPage() {
         </div>
       </main>
       
+      {/* Paywall Modal */}
+      {showPaywall && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'var(--bg-2)', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', color: 'var(--accent)' }}>Acesso ao Estúdio</h3>
+            
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.5 }}>
+              O uso do Estúdio é gratuito apenas no <strong>Plano Advanced</strong>. Seu plano atual é o <strong>{userPlan}</strong>.
+            </p>
+            
+            <div style={{ background: 'var(--bg-3)', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Gerar Música Avulsa:</p>
+              <ul style={{ fontSize: '14px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '8px', margin: 0, paddingLeft: '20px' }}>
+                <li style={{ color: userPlan === 'FREE' ? 'var(--text)' : 'inherit' }}>Plano Free: R$ 9,99</li>
+                <li style={{ color: userPlan === 'BASIC' ? 'var(--text)' : 'inherit' }}>Plano Básico: R$ 7,99</li>
+                <li style={{ color: userPlan === 'INTERMEDIATE' ? 'var(--text)' : 'inherit' }}>Plano Intermediário: R$ 5,99</li>
+              </ul>
+            </div>
+            
+            <button 
+              onClick={async () => {
+                alert('Aqui abriria o checkout do Stripe/MercadoPago para comprar 1 crédito! Simulando sucesso...')
+                try {
+                  const res = await fetch('/api/checkout/studio', { method: 'POST' })
+                  if (res.ok) {
+                    alert('Crédito adicionado com sucesso! Agora você pode processar.')
+                    setShowPaywall(false)
+                    // Reloading session would be ideal, but for the mock it doesn't matter because processAndSave checks session.user AND server DB. Actually the frontend will still block unless we manually reload or update the state.
+                    window.location.reload()
+                  }
+                } catch (e) { console.log(e) }
+              }}
+              style={{ width: '100%', padding: '14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', marginBottom: '12px' }}
+            >
+              Comprar 1 Geração (R$ {userPlan === 'BASIC' ? '7,99' : userPlan === 'INTERMEDIATE' ? '5,99' : '9,99'})
+            </button>
+            <button 
+              onClick={() => setShowPaywall(false)}
+              style={{ width: '100%', padding: '14px', background: 'transparent', color: 'var(--text-muted)', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* CSS For spin animation */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes spin { 100% { transform: rotate(360deg); } }

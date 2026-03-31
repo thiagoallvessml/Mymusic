@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUploadUrl } from '@/lib/r2'
 import { randomUUID } from 'crypto'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -10,7 +11,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
-  const { filename, contentType, size } = await req.json()
+  const { filename, contentType, size, isStudioAction } = await req.json()
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { plan: true, studioCredits: true, _count: { select: { songs: true } } }
+  })
+
+  if (!user) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+
+  if (isStudioAction) {
+    if (user.plan !== 'ADVANCED' && user.studioCredits <= 0) {
+      return NextResponse.json({ error: 'Você precisa do plano Advanced ou de créditos para usar o Estúdio.' }, { status: 402 })
+    }
+  } else {
+    let limit = 2
+    if (user.plan === 'BASIC') limit = 100
+    if (user.plan === 'INTERMEDIATE') limit = 500
+    if (user.plan === 'ADVANCED') limit = 99999999
+
+    if (user._count.songs >= limit) {
+      return NextResponse.json({ error: `Você atingiu o limite de ${limit} músicas do seu Plano ${user.plan}. Faça upgrade para continuar.` }, { status: 403 })
+    }
+  }
 
   if (!filename || !contentType) {
     return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
