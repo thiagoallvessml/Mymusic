@@ -67,7 +67,7 @@ export default function Player() {
 
   return (
     <>
-      <div style={{
+      <div className="player-container" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, height: 'var(--player-h)',
         background: 'rgba(17,17,17,0.95)', backdropFilter: 'blur(20px)',
         borderTop: '1px solid var(--border)', zIndex: 100,
@@ -81,7 +81,7 @@ export default function Player() {
         />
 
         {/* Song info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', flex: 1 }}>
+        <div className="player-song-info" style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', flex: 1 }}>
           <div style={{
             width: '48px', height: '48px', borderRadius: '6px', flexShrink: 0,
             background: 'var(--bg-4)', display: 'flex', alignItems: 'center',
@@ -100,9 +100,9 @@ export default function Player() {
         </div>
 
         {/* Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 2, maxWidth: '600px' }}>
+        <div className="player-controls" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 2, maxWidth: '600px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <button onClick={toggleShuffle} title="Aleatório"
+            <button className="hide-on-mobile" onClick={toggleShuffle} title="Aleatório"
               style={{ color: shuffle ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
               <Shuffle size={16} />
             </button>
@@ -123,19 +123,25 @@ export default function Player() {
             <button onClick={next} style={{ color: 'var(--text)' }}>
               <SkipForward size={20} />
             </button>
-            <button onClick={cycleRepeat} title="Repetir"
+            <button className="hide-on-mobile" onClick={cycleRepeat} title="Repetir"
               style={{ color: repeat !== 'none' ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
               {repeat === 'one' ? <Repeat1 size={16} /> : <Repeat size={16} />}
+            </button>
+            
+            {/* Mobile Lyrics Button inside central controls */}
+            <button className="show-on-mobile" onClick={() => setShowLyrics(!showLyrics)} title="Letras"
+              style={{ color: showLyrics ? 'var(--accent)' : 'var(--text)', display: 'none', transition: 'color 0.2s' }}>
+              📝
             </button>
           </div>
 
           {/* Progress */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+          <div className="player-progress" style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', minWidth: '36px', textAlign: 'right' }}>
               {fmt(currentTime)}
             </span>
             <input type="range" min={0} max={1} step={0.001} value={progress} onChange={seekTo}
-              style={{ flex: 1 }} />
+              style={{ flex: 1, accentColor: 'var(--text)' }} />
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', minWidth: '36px' }}>
               {fmt(duration)}
             </span>
@@ -143,14 +149,14 @@ export default function Player() {
         </div>
 
         {/* Volume and Extras */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, justifyContent: 'flex-end', maxWidth: '300px' }}>
+        <div className="player-extras hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, justifyContent: 'flex-end', maxWidth: '300px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={() => setVolume(volume === 0 ? 0.8 : 0)} style={{ color: 'var(--text-muted)' }}>
               {volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
             <input type="range" min={0} max={1} step={0.01} value={volume}
               onChange={e => setVolume(parseFloat(e.target.value))}
-              style={{ width: '90px' }} />
+              style={{ width: '90px', accentColor: 'var(--text)' }} />
           </div>
           <button onClick={() => setShowLyrics(!showLyrics)} title="Ver Letra"
             style={{ 
@@ -174,7 +180,7 @@ export default function Player() {
 
       {/* Lyrics Sidebar */}
       {showLyrics && (
-        <div style={{
+        <div className="lyrics-sidebar" style={{
           position: 'fixed',
           top: 0,
           right: 0,
@@ -234,14 +240,53 @@ export default function Player() {
               letterSpacing: '-0.02em',
               paddingBottom: '80px'
             }}>
-              {song.lyrics || 'Nenhuma letra disponível para esta música.'}
+              {song.lyrics || 'Nenhuma letra disponível.'}
             </div>
           </div>
         </div>
       )}
 
-      {/* Slide in animation css */}
+      {/* Global & Responsive CSS for Player */}
       <style dangerouslySetInnerHTML={{__html: `
+        :root {
+          --player-h: 90px;
+        }
+        @media (max-width: 768px) {
+          :root {
+            --player-h: 130px;
+          }
+          .player-container {
+            flex-direction: column !important;
+            padding: 12px 16px !important;
+            gap: 12px !important;
+            height: var(--player-h) !important;
+            position: fixed !important;
+            bottom: 0 !important;
+          }
+          .player-song-info {
+            width: 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 0px !important;
+          }
+          .player-controls {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          .player-progress {
+            margin-top: -4px !important;
+          }
+          .hide-on-mobile {
+            display: none !important;
+          }
+          .show-on-mobile {
+            display: block !important;
+          }
+          .lyrics-sidebar {
+            width: 100vw !important;
+            min-width: 100vw !important;
+            border-left: none !important;
+          }
+        }
         @keyframes slideIn {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
