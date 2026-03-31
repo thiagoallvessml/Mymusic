@@ -6,7 +6,8 @@ import { usePlayerStore, Song } from '@/store/playerStore'
 import Player from '@/components/player/Player'
 import {
   Play, Pause, Upload, Search, LogOut, Music2,
-  Clock, MoreVertical, Plus, Heart, X, CheckCircle2, Menu, Crown, ArrowUpRight
+  Clock, MoreVertical, Plus, Heart, X, CheckCircle2, Menu, Crown, ArrowUpRight,
+  Pencil, Trash2
 } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { AddMusicModal } from '@/components/library/AddMusicModal'
@@ -29,6 +30,13 @@ export default function LibraryPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Context menu & edit state
+  const [menuSongId, setMenuSongId] = useState<string | null>(null)
+  const [editSong, setEditSong] = useState<Song | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editArtist, setEditArtist] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<Song | null>(null)
 
   const userPlan = (session?.user as any)?.plan || 'FREE'
   const planLimit = userPlan === 'ADVANCED' ? Infinity : userPlan === 'INTERMEDIATE' ? 500 : userPlan === 'BASIC' ? 100 : 2
@@ -74,6 +82,38 @@ export default function LibraryPage() {
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  async function handleRename() {
+    if (!editSong || !editTitle.trim()) return
+    try {
+      const res = await fetch(`/api/songs/${editSong.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editTitle.trim(), artist: editArtist.trim() })
+      })
+      if (res.ok) {
+        setSongs(prev => prev.map(s => s.id === editSong.id ? { ...s, title: editTitle.trim(), artist: editArtist.trim() } : s))
+        setEditSong(null)
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao renomear')
+      }
+    } catch { alert('Erro de rede') }
+  }
+
+  async function handleDelete() {
+    if (!deleteConfirm) return
+    try {
+      const res = await fetch(`/api/songs/${deleteConfirm.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setSongs(prev => prev.filter(s => s.id !== deleteConfirm.id))
+        setDeleteConfirm(null)
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao excluir')
+      }
+    } catch { alert('Erro de rede') }
   }
 
   if (status === 'loading') return (
@@ -278,13 +318,68 @@ export default function LibraryPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="hide-on-mobile" style={{ width: '48px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFav(song.id); }}
+                        className="hide-on-mobile"
                         style={{ color: favorites.has(song.id) ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.2s' }}
                       >
                         <Heart size={18} fill={favorites.has(song.id) ? 'currentColor' : 'none'} />
                       </button>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setMenuSongId(menuSongId === song.id ? null : song.id) }}
+                          style={{ color: 'var(--text-muted)', padding: '4px' }}
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                        {menuSongId === song.id && (
+                          <div 
+                            style={{
+                              position: 'absolute', right: 0, top: '100%', zIndex: 50,
+                              background: 'var(--bg-2)', border: '1px solid var(--border)',
+                              borderRadius: '8px', minWidth: '160px', padding: '4px',
+                              boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                            }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => {
+                                setEditSong(song)
+                                setEditTitle(song.title)
+                                setEditArtist(song.artist)
+                                setMenuSongId(null)
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                padding: '10px 12px', background: 'transparent', color: 'var(--text)',
+                                border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                                textAlign: 'left'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-3)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <Pencil size={15} /> Renomear
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDeleteConfirm(song)
+                                setMenuSongId(null)
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                padding: '10px 12px', background: 'transparent', color: '#ef4444',
+                                border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                                textAlign: 'left'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <Trash2 size={15} /> Excluir
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -294,6 +389,86 @@ export default function LibraryPage() {
         )}
       </main>
       </div>
+
+      {/* Click-away listener for context menu */}
+      {menuSongId && (
+        <div 
+          style={{ position: 'fixed', inset: 0, zIndex: 40 }} 
+          onClick={() => setMenuSongId(null)} 
+        />
+      )}
+
+      {/* Rename Modal */}
+      {editSong && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'var(--bg-2)', padding: '28px', borderRadius: '16px', maxWidth: '400px', width: '90%', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Renomear Música</h3>
+            
+            <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Título</label>
+            <input 
+              value={editTitle} onChange={e => setEditTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleRename()}
+              autoFocus
+              style={{ width: '100%', padding: '12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: '14px', marginBottom: '16px', outline: 'none' }}
+            />
+            
+            <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Artista</label>
+            <input 
+              value={editArtist} onChange={e => setEditArtist(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleRename()}
+              style={{ width: '100%', padding: '12px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: '14px', marginBottom: '24px', outline: 'none' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setEditSong(null)}
+                style={{ flex: 1, padding: '12px', background: 'var(--bg-3)', color: 'var(--text-muted)', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleRename}
+                style={{ flex: 1, padding: '12px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'var(--bg-2)', padding: '28px', borderRadius: '16px', maxWidth: '400px', width: '90%', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: '#ef4444' }}>Excluir Música</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: 1.5 }}>
+              Tem certeza que deseja excluir:
+            </p>
+            <p style={{ fontSize: '15px', fontWeight: 600, marginBottom: '24px' }}>
+              "{deleteConfirm.title}" — {deleteConfirm.artist}
+            </p>
+            <p style={{ fontSize: '12px', color: '#ef4444', marginBottom: '24px' }}>
+              Esta ação não pode ser desfeita.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setDeleteConfirm(null)}
+                style={{ flex: 1, padding: '12px', background: 'var(--bg-3)', color: 'var(--text-muted)', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleDelete}
+                style={{ flex: 1, padding: '12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Dynamic CSS injection via generic style tag inside JSX for simple classes that need dynamic display block overrides */}
       <style dangerouslySetInnerHTML={{__html: `
