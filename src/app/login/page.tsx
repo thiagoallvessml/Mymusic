@@ -15,17 +15,23 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const res = await signIn('credentials', { name, password, redirect: false })
-    if (res?.error) {
-      setError('Nome ou senha inválidos')
-      setLoading(false)
-    } else {
-      const session = await getSession()
-      if ((session?.user as any)?.role === 'CHURCH') {
-        router.push('/church')
+    try {
+      const res = await signIn('credentials', { name, password, redirect: false })
+      if (res?.error) {
+        setError('Nome ou senha inválidos')
+        setLoading(false)
       } else {
-        router.push('/library')
+        const session = await getSession()
+        if ((session?.user as any)?.role === 'CHURCH') {
+          router.push('/church')
+        } else {
+          router.push('/library')
+        }
       }
+    } catch (err: any) {
+      console.error(err)
+      setError('Erro de configuração no servidor. Verifique os logs.')
+      setLoading(false)
     }
   }
 
