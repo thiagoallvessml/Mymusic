@@ -134,10 +134,13 @@ export default function StudioPage() {
         previewEffect.dispose()
       }
 
-      const player = new Tone.Player(selectedSong.audio_path)
+      // Use Tone.ToneAudioBuffer that has better codec support than raw decodeAudioData
+      const toneBuffer = new Tone.ToneAudioBuffer()
+      await toneBuffer.load(selectedSong.audio_path)
+
+      const player = new Tone.Player(toneBuffer)
       const pitch = new Tone.PitchShift({ pitch: pitchShift }).toDestination()
       
-      await player.load(selectedSong.audio_path)
       player.connect(pitch)
       
       setPreviewPlayer(player)
@@ -151,7 +154,8 @@ export default function StudioPage() {
       player.onstop = () => setIsPlaying(false)
 
     } catch (err: any) {
-      setErrorLine('Erro ao carregar prévia do áudio.')
+      console.error('Preview error:', err)
+      setErrorLine('Erro ao carregar prévia. Formato de áudio pode não ser suportado pelo navegador.')
       setProgressMsg('')
       setIsPlaying(false)
     }
@@ -168,15 +172,16 @@ export default function StudioPage() {
       if (previewPlayer) previewPlayer.stop()
       setIsPlaying(false)
 
-      setProgressMsg('Baixando áudio original (aguarde)...')
-      const response = await fetch(selectedSong.audio_path)
-      const arrayBuffer = await response.arrayBuffer()
+      setProgressMsg('Baixando e decodificando áudio original...')
       
-      setProgressMsg('Decodificando arquivo grande...')
-      const audioContext = Tone.getContext().rawContext as AudioContext
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+      // Use Tone.ToneAudioBuffer which has better codec support across browsers
+      const toneBuffer = new Tone.ToneAudioBuffer()
+      await toneBuffer.load(selectedSong.audio_path)
+      const audioBuffer = toneBuffer.get()
       
-      setProgressMsg(`Modificando tons em renderização offline...`)
+      if (!audioBuffer) throw new Error("Falha ao decodificar o áudio original")
+      
+      setProgressMsg(`Modificando tom em renderização offline...`)
       const duration = audioBuffer.duration
       
       // Essa função bloqueia o contexto, renderizando toda a faixa o mais rápido possível no motor do browser
@@ -216,7 +221,7 @@ export default function StudioPage() {
 
     } catch (err: any) {
       console.error(err)
-      setErrorLine('Erro durante o processamento - Músicas muito grandes podem travar seu navegador.')
+      setErrorLine(`Erro: ${err.message || 'Formato de áudio não suportado pelo navegador.'}`)
       setProgressMsg('')
     } finally {
       setIsProcessing(false)
