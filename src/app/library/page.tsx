@@ -184,63 +184,76 @@ export default function LibraryPage() {
           </div>
         ) : (
           <>
-            {/* Table header */}
-            <div className="song-row-grid" style={{
-              padding: '0 12px 8px', borderBottom: '1px solid var(--border)',
-              color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600,
-              letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '4px'
-            }}>
-              <span>#</span>
-              <span>Título</span>
-              <span>Artista</span>
-              <span className="hide-on-mobile">Álbum</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /></span>
-              <span className="hide-on-mobile"></span>
-            </div>
-
-            {/* Songs */}
-            {filtered.map((song, idx) => {
-              const isActive = currentSong?.id === song.id
-              return (
-                <div
-                  key={song.id}
-                  onClick={() => { setQueue(filtered, idx) }}
-                  className="song-row-grid"
-                  style={{
-                    padding: '8px 12px', borderRadius: '8px', alignItems: 'center',
-                    background: isActive ? 'var(--accent-dim)' : 'transparent',
-                    cursor: 'pointer', transition: 'background 0.15s', gap: '0'
-                  }}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-2)' }}
-                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {isActive ? (
-                      <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} style={{ color: 'var(--accent)' }}>
-                        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
-                      </button>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{idx + 1}</span>
-                    )}
-                  </div>
-                  <div style={{ overflow: 'hidden' }}>
-                    <p style={{ fontSize: '14px', fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--accent)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {song.title}
-                    </p>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.artist}</p>
-                  <p className="hide-on-mobile" style={{ fontSize: '14px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.album || '—'}</p>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{fmt(song.duration)}</p>
-                  <button
-                    className="hide-on-mobile"
-                    onClick={(e) => { e.stopPropagation(); toggleFav(song.id); }}
-                    style={{ color: favorites.has(song.id) ? 'var(--accent)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {filtered.map((song, idx) => {
+                const isActive = currentSong?.id === song.id
+                return (
+                  <div
+                    key={song.id}
+                    onClick={() => { setQueue(filtered, idx) }}
+                    className="library-song-row"
+                    style={{
+                      display: 'flex', alignItems: 'center', padding: '12px 16px', borderRadius: '12px',
+                      background: isActive ? 'var(--bg-3)' : 'transparent',
+                      cursor: 'pointer', transition: 'all 0.2s ease', gap: '16px',
+                      border: '1px solid', borderColor: isActive ? 'var(--border)' : 'transparent'
+                    }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-2)' }}
+                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
                   >
-                    <Heart size={15} fill={favorites.has(song.id) ? 'currentColor' : 'none'} />
-                  </button>
-                </div>
-              )
-            })}
+                    {/* Cover Art / Play Overlay */}
+                    <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '8px', background: 'var(--bg-4)', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {song.coverUrl ? (
+                        <img src={song.coverUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Music2 size={20} color="var(--text-muted)" />
+                      )}
+                      
+                      {/* Hover Overlay */}
+                      <div className={`song-overlay ${isActive ? 'active' : ''}`} style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'opacity 0.2s'
+                      }}>
+                        {isActive && isPlaying ? <Pause size={20} fill="#fff" color="#fff" /> : <Play size={20} fill="#fff" color="#fff" style={{ marginLeft: '2px' }} />}
+                      </div>
+                    </div>
+
+                    {/* Meta */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <p style={{ fontSize: '15px', fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--accent)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {song.title}
+                      </p>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {song.artist}
+                      </p>
+                    </div>
+
+                    {/* Album */}
+                    <div className="hide-on-mobile" style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '14px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {song.album || '—'}
+                      </p>
+                    </div>
+
+                    {/* Duration */}
+                    <div style={{ width: '60px', textAlign: 'right' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{fmt(song.duration)}</span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="hide-on-mobile" style={{ width: '48px', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFav(song.id); }}
+                        style={{ color: favorites.has(song.id) ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.2s' }}
+                      >
+                        <Heart size={18} fill={favorites.has(song.id) ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </>
         )}
       </main>
@@ -248,14 +261,18 @@ export default function LibraryPage() {
       
       {/* Dynamic CSS injection via generic style tag inside JSX for simple classes that need dynamic display block overrides */}
       <style dangerouslySetInnerHTML={{__html: `
-        .song-row-grid {
-          display: grid;
-          grid-template-columns: 48px 1fr 1fr 1fr 80px 48px;
+        .library-song-row .song-overlay {
+          opacity: 0;
+        }
+        .library-song-row:hover .song-overlay {
+          opacity: 1 !important;
+        }
+        .library-song-row .song-overlay.active {
+          opacity: 1 !important;
         }
         @media (max-width: 768px) {
-          .song-row-grid {
-            grid-template-columns: 40px 1.5fr 1fr 60px !important;
-            padding: 8px 0 !important;
+          .library-song-row {
+            padding: 10px 12px !important;
           }
           .mobile-hamburger { display: block !important; }
           .hide-on-mobile { display: none !important; }
