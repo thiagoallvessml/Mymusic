@@ -33,62 +33,73 @@ export async function GET(req: NextRequest) {
 
 // POST /api/songs - save song metadata after upload
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
-
-  const { title, artist, album, duration, fileKey, size, mimeType, genre, year, lyrics, coverUrl, isStudioAction } = await req.json()
-
-  if (!title || !artist || !fileKey) {
-    return NextResponse.json({ error: 'Dados obrigatórios faltando' }, { status: 400 })
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { plan: true, studioCredits: true, _count: { select: { songs: true } } }
-  })
-
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-
-  if (isStudioAction) {
-    if (user.plan !== 'ADVANCED' && user.studioCredits <= 0) {
-      return NextResponse.json({ error: 'Você precisa do plano Advanced ou de créditos avulsos para usar o Estúdio.' }, { status: 402 }) // 402 Payment Required
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
-    if (user.plan !== 'ADVANCED') {
-      await prisma.user.update({
+
+    const { title, artist, album, duration, fileKey, size, mimeType, genre, year, lyrics, coverUrl, isStudioAction } = await req.json()
+
+    if (!title || !artist || !fileKey) {
+      return NextResponse.json({ error: 'Dados obrigatórios faltando' }, { status: 400 })
+    }
+
+    // Plan enforcement - wrapped in try/catch so it never blocks normal uploads if DB fields are missing
+    try {
+      const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        data: { studioCredits: { decrement: 1 } }
+        select: { plan: true, studioCredits: true, _count: { select: { songs: true } } }
       })
-    }
-  } else {
-    let limit = 2
-    if (user.plan === 'BASIC') limit = 100
-    if (user.plan === 'INTERMEDIATE') limit = 500
-    if (user.plan === 'ADVANCED') limit = 99999999
 
-    if (user._count.songs >= limit) {
-      return NextResponse.json({ error: `Você atingiu o limite de ${limit} músicas do seu Plano ${user.plan}. Faça upgrade para continuar.` }, { status: 403 })
+      if (user) {
+        if (isStudioAction) {
+          if (user.plan !== 'ADVANCED' && user.studioCredits <= 0) {
+            return NextResponse.json({ error: 'Você precisa do plano Advanced ou de créditos avulsos para usar o Estúdio.' }, { status: 402 })
+          }
+          if (user.plan !== 'ADVANCED') {
+            await prisma.user.update({
+              where: { id: session.user.id },
+              data: { studioCredits: { decrement: 1 } }
+            })
+          }
+        } else {
+          let limit = 2
+          if (user.plan === 'BASIC') limit = 100
+          if (user.plan === 'INTERMEDIATE') limit = 500
+          if (user.plan === 'ADVANCED') limit = 99999999
+
+          if (user._count.songs >= limit) {
+            return NextResponse.json({ error: `Você atingiu o limite de ${limit} músicas do seu Plano ${user.plan}. Faça upgrade para continuar.` }, { status: 403 })
+          }
+        }
+      }
+    } catch (planErr) {
+      console.error('Plan check failed, allowing upload:', planErr)
+      // Allow upload to proceed if plan check fails (e.g. new fields not yet in DB)
     }
+
+    const song = await prisma.song.create({
+      data: {
+        title,
+        artist,
+        album,
+        genre,
+        year,
+        lyrics,
+        duration: duration || 0,
+        fileKey,
+        fileUrl: getPublicUrl(fileKey),
+        coverUrl: coverUrl ? getPublicUrl(coverUrl) : null,
+        size,
+        mimeType,
+        userId: session.user.id,
+      },
+    })
+
+    return NextResponse.json(song, { status: 201 })
+  } catch (err: any) {
+    console.error('POST /api/songs error:', err)
+    return NextResponse.json({ error: err?.message || 'Erro interno do servidor' }, { status: 500 })
   }
-
-  const song = await prisma.song.create({
-    data: {
-      title,
-      artist,
-      album,
-      genre,
-      year,
-      lyrics,
-      duration: duration || 0,
-      fileKey,
-      fileUrl: getPublicUrl(fileKey),
-      coverUrl: coverUrl ? getPublicUrl(coverUrl) : null,
-      size,
-      mimeType,
-      userId: session.user.id,
-    },
-  })
-
-  return NextResponse.json(song, { status: 201 })
 }
