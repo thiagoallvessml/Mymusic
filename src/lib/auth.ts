@@ -56,13 +56,19 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         ;(session.user as any).role = token.role as string
 
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { plan: true, studioCredits: true }
-        })
-        if (dbUser) {
-          ;(session.user as any).plan = dbUser.plan
-          ;(session.user as any).studioCredits = dbUser.studioCredits
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { plan: true, studioCredits: true }
+          })
+          if (dbUser) {
+            ;(session.user as any).plan = dbUser.plan
+            ;(session.user as any).studioCredits = dbUser.studioCredits
+          }
+        } catch (e) {
+          // Fallback: se a query falhar, define valores padrão
+          ;(session.user as any).plan = 'FREE'
+          ;(session.user as any).studioCredits = 0
         }
       }
       return session
