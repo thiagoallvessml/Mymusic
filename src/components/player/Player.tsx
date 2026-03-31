@@ -253,15 +253,17 @@ export default function Player() {
         }
         @media (max-width: 768px) {
           :root {
-            --player-h: 130px;
+            --player-h: 150px;
           }
           .player-container {
             flex-direction: column !important;
-            padding: 12px 16px !important;
+            padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
             gap: 12px !important;
-            height: var(--player-h) !important;
+            height: auto !important;
+            min-height: var(--player-h) !important;
             position: fixed !important;
             bottom: 0 !important;
+            justify-content: center !important;
           }
           .player-song-info {
             width: 100% !important;
