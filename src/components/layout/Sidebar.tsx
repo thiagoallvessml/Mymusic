@@ -3,7 +3,7 @@ import { signOut, useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Library, Heart, ListMusic,
-  History, Music2, X
+  History, Music2, X, Settings2
 } from 'lucide-react'
 import { usePlayerStore } from '@/store/playerStore'
 
@@ -71,6 +71,10 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
           <a href="#" className="sidebar-nav-link">
             <History size={20} />
             <span className="sidebar-text">Histórico</span>
+          </a>
+          <a href="/studio" className={`sidebar-nav-link ${pathname === '/studio' ? 'active' : ''}`}>
+            <Settings2 size={20} />
+            <span className="sidebar-text">Estúdio</span>
           </a>
           <a href="/church" className={`sidebar-nav-link ${pathname === '/church' ? 'active' : ''}`} style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
             <Music2 size={20} color="var(--accent3)" />
