@@ -98,7 +98,7 @@ export default function LibraryPage() {
             >
               <Menu size={24} />
             </button>
-            <div style={{
+            <div className="lib-search" style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               background: 'var(--bg-3)', opacity: 0.8, borderRadius: '100px',
               padding: '10px 16px', width: '380px', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '100%'
@@ -273,6 +273,13 @@ export default function LibraryPage() {
           opacity: 1 !important;
         }
         @media (max-width: 768px) {
+          .lib-search {
+            padding: 7px 12px !important;
+            width: 100% !important;
+          }
+          .lib-search input {
+            font-size: 12px !important;
+          }
           .lib-actions-bar {
             flex-direction: column !important;
             align-items: flex-start !important;
