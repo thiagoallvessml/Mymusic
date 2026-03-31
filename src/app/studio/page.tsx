@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { StudioTermsModal } from '@/components/studio/StudioTermsModal'
 import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info, Crown, ArrowUpRight, Lock } from 'lucide-react'
 import * as Tone from 'tone'
 
@@ -76,6 +77,19 @@ export default function StudioPage() {
   const [songs, setSongs] = useState<Song[]>([])
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(true)
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const accepted = localStorage.getItem('studio_terms_accepted') === 'true'
+      setHasAcceptedTerms(accepted)
+    }
+  }, [])
+
+  function handleAcceptTerms() {
+    localStorage.setItem('studio_terms_accepted', 'true')
+    setHasAcceptedTerms(true)
+  }
   
   const [pitchShift, setPitchShift] = useState(-1) // default -1 semitone
   const [isEditingPitch, setIsEditingPitch] = useState(false)
@@ -603,6 +617,11 @@ export default function StudioPage() {
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .animate-spin { animation: spin 1s linear infinite; }
       `}} />
+
+      {/* Terms of Use Modal */}
+      {!hasAcceptedTerms && (
+        <StudioTermsModal onAccept={handleAcceptTerms} />
+      )}
     </div>
   )
 }
