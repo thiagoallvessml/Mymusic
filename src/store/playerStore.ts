@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export interface Song {
   id: string
@@ -32,16 +33,25 @@ interface PlayerState {
   setProgress: (p: number) => void
   toggleShuffle: () => void
   cycleRepeat: () => void
+  
+  favorites: string[]
+  history: string[]
+  toggleFavorite: (id: string) => void
+  addToHistory: (id: string) => void
 }
 
-export const usePlayerStore = create<PlayerState>((set, get) => ({
-  queue: [],
-  currentIndex: 0,
-  isPlaying: false,
-  volume: 0.8,
-  progress: 0,
-  shuffle: false,
-  repeat: 'none',
+export const usePlayerStore = create<PlayerState>()(
+  persist(
+    (set, get) => ({
+      queue: [],
+      currentIndex: 0,
+      isPlaying: false,
+      volume: 0.8,
+      progress: 0,
+      shuffle: false,
+      repeat: 'none',
+      favorites: [],
+      history: [],
 
   setQueue: (songs, startIndex = 0) =>
     set({ queue: songs, currentIndex: startIndex, isPlaying: true }),
@@ -88,4 +98,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       repeat:
         s.repeat === 'none' ? 'all' : s.repeat === 'all' ? 'one' : 'none',
     })),
-}))
+    
+  toggleFavorite: (id) => set((s) => ({
+    favorites: s.favorites.includes(id) 
+      ? s.favorites.filter(x => x !== id) 
+      : [...s.favorites, id]
+  })),
+  
+  addToHistory: (id) => set((s) => {
+    const next = s.history.filter(x => x !== id)
+    return { history: [id, ...next].slice(0, 100) } // Keep last 100
+  })
+    }),
+    {
+      name: 'mymusic-player-storage',
+      partialize: (state) => ({ 
+        volume: state.volume, 
+        favorites: state.favorites, 
+        history: state.history 
+      }) // Only persist these
+    }
+  )
+)

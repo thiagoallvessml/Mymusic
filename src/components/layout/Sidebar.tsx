@@ -60,15 +60,15 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
             <Library size={20} />
             <span className="sidebar-text">Biblioteca</span>
           </a>
-          <a href="#" className={`sidebar-nav-link ${pathname === '/favoritos' ? 'active' : ''}`}>
+          <a href="/favorites" className={`sidebar-nav-link ${pathname === '/favorites' ? 'active' : ''}`}>
             <Heart size={20} />
             <span className="sidebar-text">Favoritos</span>
           </a>
-          <a href="#" className="sidebar-nav-link">
+          <a href="#" className={`sidebar-nav-link ${pathname === '/playlists' ? 'active' : ''}`}>
             <ListMusic size={20} />
             <span className="sidebar-text">Playlists</span>
           </a>
-          <a href="#" className="sidebar-nav-link">
+          <a href="/history" className={`sidebar-nav-link ${pathname === '/history' ? 'active' : ''}`}>
             <History size={20} />
             <span className="sidebar-text">Histórico</span>
           </a>

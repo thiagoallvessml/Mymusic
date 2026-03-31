@@ -18,7 +18,7 @@ function fmt(s: number) {
   return `${m}:${ss.toString().padStart(2, '0')}`
 }
 
-export default function LibraryPage() {
+export default function FavoritesPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { playSong, setQueue, currentIndex, queue, isPlaying, togglePlay, favorites, toggleFavorite } = usePlayerStore()
@@ -27,7 +27,6 @@ export default function LibraryPage() {
   const [filtered, setFiltered] = useState<Song[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
-  const [showUpload, setShowUpload] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // Context menu & edit state
@@ -37,9 +36,6 @@ export default function LibraryPage() {
   const [editArtist, setEditArtist] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<Song | null>(null)
 
-  const userPlan = (session?.user as any)?.plan || 'FREE'
-  const planLimit = userPlan === 'ADVANCED' ? Infinity : userPlan === 'INTERMEDIATE' ? 500 : userPlan === 'BASIC' ? 100 : 2
-  const isAtLimit = songs.length >= planLimit
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -51,12 +47,14 @@ export default function LibraryPage() {
 
   useEffect(() => {
     const q = search.toLowerCase()
-    setFiltered(q ? songs.filter(s =>
-      s.title.toLowerCase().includes(q) ||
-      s.artist.toLowerCase().includes(q) ||
-      (s.album || '').toLowerCase().includes(q)
-    ) : songs)
-  }, [search, songs])
+    setFiltered(songs.filter(s => {
+      if (!favorites.includes(s.id)) return false
+      if (!q) return true
+      return s.title.toLowerCase().includes(q) ||
+        s.artist.toLowerCase().includes(q) ||
+        (s.album || '').toLowerCase().includes(q)
+    }))
+  }, [search, songs, favorites])
 
   async function fetchSongs() {
     setLoading(true)
@@ -160,9 +158,9 @@ export default function LibraryPage() {
         <div className="lib-actions-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-              <h1 className="lib-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Sua Biblioteca</h1>
+              <h1 className="lib-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Favoritos</h1>
               <span className="lib-subtitle" style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                {songs.length} / {planLimit === Infinity ? '∞' : planLimit} {songs.length === 1 ? 'música' : 'músicas'}
+                {filtered.length} {filtered.length === 1 ? 'música' : 'músicas'}
               </span>
             </div>
           </div>
@@ -180,50 +178,8 @@ export default function LibraryPage() {
                 <Play size={16} fill="#000" /> Tocar tudo
               </button>
             )}
-            <button
-              onClick={() => {
-                if (isAtLimit) {
-                  alert(`Você atingiu o limite de ${planLimit} músicas do plano ${userPlan}. Faça upgrade em Planos para continuar.`)
-                  return
-                }
-                setShowUpload(true)
-              }}
-              className="lib-btn"
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '10px 20px', background: isAtLimit ? 'var(--bg-4)' : 'var(--bg-3)', color: isAtLimit ? 'var(--text-muted)' : 'var(--text)',
-                borderRadius: '100px', fontWeight: 600, fontSize: '14px',
-                border: '1px solid var(--border)', transition: 'background 0.2s',
-                cursor: isAtLimit ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <Plus size={16} /> Adicionar
-            </button>
           </div>
         </div>
-
-        {/* Plan Limit Banner */}
-        {isAtLimit && (
-          <div style={{ 
-            display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px',
-            background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '12px', marginBottom: '24px'
-          }}>
-            <Crown size={18} color="#ef4444" style={{ flexShrink: 0 }} />
-            <p style={{ fontSize: '13px', color: 'var(--text)', flex: 1, lineHeight: 1.4 }}>
-              Você atingiu o limite de <strong>{planLimit} músicas</strong> do plano <strong>{userPlan}</strong>.
-            </p>
-            <a href="/plans" style={{ 
-              display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px',
-              background: 'var(--accent)', color: '#000', borderRadius: '100px',
-              fontWeight: 700, fontSize: '12px', textDecoration: 'none', whiteSpace: 'nowrap'
-            }}>
-              Upgrade <ArrowUpRight size={14} />
-            </a>
-          </div>
-        )}
-
-        <AddMusicModal isOpen={showUpload} onClose={() => setShowUpload(false)} onSuccess={fetchSongs} />
 
         {/* Song list */}
         {loading ? (
@@ -234,22 +190,11 @@ export default function LibraryPage() {
           <div style={{ textAlign: 'center', padding: '80px 24px' }}>
             <Music2 size={48} color="var(--text-muted)" style={{ margin: '0 auto 16px' }} />
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-              {search ? 'Nenhum resultado encontrado' : 'Sua biblioteca está vazia'}
+              {search ? 'Nenhum resultado encontrado' : 'Nenhum favorito ainda'}
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
-              {search ? 'Tente buscar por outro termo' : 'Faça upload de suas músicas para começar'}
+              {search ? 'Tente buscar por outro termo' : 'Curta suas músicas clicando no ícone do coração para que elas apareçam aqui.'}
             </p>
-            {!search && (
-              <button
-                onClick={() => setShowUpload(true)}
-                style={{
-                  padding: '12px 24px', background: 'var(--accent)', color: '#000',
-                  borderRadius: '100px', fontWeight: 700, fontSize: '14px'
-                }}
-              >
-                Adicionar música
-              </button>
-            )}
           </div>
         ) : (
           <>

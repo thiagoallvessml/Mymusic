@@ -17,7 +17,8 @@ export default function Player() {
   const {
     queue, currentIndex, isPlaying, volume, progress,
     shuffle, repeat, togglePlay, next, prev,
-    setVolume, setProgress, toggleShuffle, cycleRepeat
+    setVolume, setProgress, toggleShuffle, cycleRepeat,
+    addToHistory
   } = usePlayerStore()
 
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -28,6 +29,7 @@ export default function Player() {
     if (!audio || !song) return
     audio.src = song.fileUrl
     audio.load()
+    addToHistory(song.id) // Adiciona ao histórico
     if (isPlaying) audio.play().catch(() => {})
   }, [song?.id])
 
