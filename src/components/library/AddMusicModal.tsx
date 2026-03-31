@@ -25,6 +25,7 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
   const [current, setCurrent] = useState<DraftSong>(createNewDraft())
   const [isUploading, setIsUploading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   
   const audioInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -133,6 +134,23 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
     if (e.target.files?.[0]) setCurrent({ ...current, coverFile: e.target.files[0] })
   }
 
+  function handleCancel() {
+    const hasData = drafts.length > 0 || current.audioFile || current.title || current.artist
+    if (hasData) {
+      setShowCancelConfirm(true)
+    } else {
+      onClose()
+    }
+  }
+
+  function confirmCancel() {
+    setShowCancelConfirm(false)
+    setDrafts([])
+    setCurrent(createNewDraft())
+    setProgress(0)
+    onClose()
+  }
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -149,7 +167,7 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>Adicionar Música</h2>
             {drafts.length > 0 && <span style={{ background: 'var(--accent)', color: '#000', padding: '2px 8px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>{drafts.length} prontas</span>}
           </div>
-          <button onClick={onClose} style={{ color: '#888', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#888'}>
+          <button onClick={handleCancel} style={{ color: '#888', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#888'}>
             <X size={20} />
           </button>
         </div>
@@ -244,7 +262,7 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
             </div>
           ) : (
             <>
-              <button onClick={onClose} style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#aaa', border: '1px solid #444', borderRadius: '8px', background: 'transparent' }}>
+              <button onClick={handleCancel} style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#aaa', border: '1px solid #444', borderRadius: '8px', background: 'transparent' }}>
                 Cancelar
               </button>
               <button onClick={handleAddPlus} style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#fff', border: '1px solid #444', borderRadius: '8px', background: '#222', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -258,6 +276,44 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
         </div>
         
       </div>
+
+      {/* Cancel Confirmation Overlay */}
+      {showCancelConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)'
+        }}>
+          <div style={{
+            background: '#1e1e1e', border: '1px solid #444', borderRadius: '12px',
+            padding: '28px', maxWidth: '380px', width: '100%', textAlign: 'center',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <X size={24} color="#ef4444" />
+            </div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>Cancelar upload?</h3>
+            <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '24px' }}>
+              {drafts.length > 0
+                ? `Você tem ${drafts.length + (current.audioFile ? 1 : 0)} música(s) carregada(s). Todos os dados serão descartados.`
+                : 'Os dados preenchidos serão descartados.'}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                style={{ padding: '10px 24px', fontSize: '14px', fontWeight: 600, color: '#aaa', border: '1px solid #444', borderRadius: '8px', background: 'transparent' }}
+              >
+                Voltar
+              </button>
+              <button
+                onClick={confirmCancel}
+                style={{ padding: '10px 24px', fontSize: '14px', fontWeight: 600, color: '#fff', borderRadius: '8px', background: '#ef4444', border: 'none' }}
+              >
+                Sim, cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
