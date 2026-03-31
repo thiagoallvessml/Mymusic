@@ -78,6 +78,8 @@ export default function StudioPage() {
   const [searchQuery, setSearchQuery] = useState('')
   
   const [pitchShift, setPitchShift] = useState(-1) // default -1 semitone
+  const [isEditingPitch, setIsEditingPitch] = useState(false)
+  const [pitchInput, setPitchInput] = useState('')
   
   const [isProcessing, setIsProcessing] = useState(false)
   const [progressMsg, setProgressMsg] = useState('')
@@ -370,9 +372,33 @@ export default function StudioPage() {
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600 }}>Tom (Semitons)</span>
-              <span style={{ background: 'var(--bg-4)', padding: '4px 12px', borderRadius: '100px', fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>
-                {pitchShift > 0 ? `+${pitchShift}` : pitchShift}
-              </span>
+              {isEditingPitch ? (
+                <input 
+                  type="text"
+                  autoFocus
+                  value={pitchInput}
+                  onChange={e => setPitchInput(e.target.value)}
+                  onBlur={() => {
+                    setIsEditingPitch(false)
+                    const val = parseInt(pitchInput)
+                    if (!isNaN(val) && val >= -24 && val <= 24) setPitchShift(val)
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                  }}
+                  style={{ background: 'var(--bg-4)', padding: '3px 10px', borderRadius: '100px', fontSize: '14px', fontWeight: 700, color: 'var(--accent)', width: '48px', textAlign: 'center', border: 'none', outline: 'none' }}
+                />
+              ) : (
+                <span 
+                  onClick={() => { setIsEditingPitch(true); setPitchInput(pitchShift.toString()) }}
+                  title="Clique para editar"
+                  style={{ background: 'var(--bg-4)', padding: '4px 12px', borderRadius: '100px', fontSize: '14px', fontWeight: 700, color: 'var(--accent)', cursor: 'pointer', transition: 'background 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-3)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-4)'}
+                >
+                  {pitchShift > 0 ? `+${pitchShift}` : pitchShift}
+                </span>
+              )}
             </div>
             
             <input 
