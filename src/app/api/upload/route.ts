@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     try {
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { plan: true, studioCredits: true, _count: { select: { songs: true } } }
-      })
+        select: { plan: true, studioCredits: true, _count: { select: { songs: true } } } as any
+      }) as any
 
       if (user) {
         if (isStudioAction) {

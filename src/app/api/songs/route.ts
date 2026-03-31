@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
     try {
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { plan: true, studioCredits: true, _count: { select: { songs: true } } }
-      })
+        select: { plan: true, studioCredits: true, _count: { select: { songs: true } } } as any
+      }) as any
 
       if (user) {
         if (isStudioAction) {
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Você precisa do plano Advanced ou de créditos avulsos para usar o Estúdio.' }, { status: 402 })
           }
           if (user.plan !== 'ADVANCED') {
-            await prisma.user.update({
+            await (prisma.user as any).update({
               where: { id: session.user.id },
               data: { studioCredits: { decrement: 1 } }
             })

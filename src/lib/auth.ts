@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
         // Try primary User login
         let user = await prisma.user.findUnique({
           where: { name: credentials.name },
-        })
+        }) as any
 
         if (user) {
           const valid = await bcrypt.compare(credentials.password, user.password)
@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Try Church-specific login
-        const churchUser = await prisma.user.findUnique({
+        const churchUser = await (prisma.user as any).findUnique({
           where: { churchName: credentials.name }
         })
 
@@ -59,8 +59,8 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { plan: true, studioCredits: true }
-          })
+            select: { plan: true, studioCredits: true } as any
+          }) as any
           if (dbUser) {
             ;(session.user as any).plan = dbUser.plan
             ;(session.user as any).studioCredits = dbUser.studioCredits

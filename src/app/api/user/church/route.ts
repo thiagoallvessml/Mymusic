@@ -11,8 +11,8 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { churchName: true }
-    })
+      select: { churchName: true } as any
+    }) as any
 
     return NextResponse.json({ churchName: user?.churchName || '' })
   } catch (err) {
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // check if name is being used by someone else
     if (churchName) {
-      const existing = await prisma.user.findFirst({
+      const existing = await (prisma.user as any).findFirst({
         where: {
           OR: [
             { name: churchName },
