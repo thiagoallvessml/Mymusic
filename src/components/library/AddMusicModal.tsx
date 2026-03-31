@@ -97,8 +97,8 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
           audio.onerror = () => resolve(0)
         })
 
-        // 5. Save to DB (only passing supported fields for now, others simulate locally)
-        await fetch('/api/songs', {
+        // 5. Save to DB
+        const songRes = await fetch('/api/songs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -116,10 +116,18 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
           }),
         })
 
+        if (!songRes.ok) {
+          const songErr = await songRes.json()
+          alert(songErr.error || 'Erro ao salvar música.')
+          setIsUploading(false)
+          return
+        }
+
         completed++
         setProgress(Math.floor((completed / list.length) * 100))
-      } catch (err) {
+      } catch (err: any) {
         console.error('Upload failed for', draft.title, err)
+        alert('Erro no upload de "' + (draft.title || 'música') + '": ' + (err?.message || 'Erro desconhecido'))
       }
     }
 
