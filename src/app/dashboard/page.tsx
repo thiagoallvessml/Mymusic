@@ -216,10 +216,10 @@ export default function DashboardPage() {
                     <Music2 size={32} color="var(--accent)" />
                   </div>
                   <p style={{ fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {recentlyAdded[0]?.title || 'É Ele'}
+                    {recentlyAdded[0]?.title || 'Sua Nova Música'}
                   </p>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {recentlyAdded[0]?.artist || 'Lauriete'}
+                    {recentlyAdded[0]?.artist || 'Artista'}
                   </p>
                 </div>
               </div>
@@ -237,11 +237,11 @@ export default function DashboardPage() {
                       width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-3)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '16px', color: 'var(--accent)'
                     }}>
-                      {(topArtists[0] || 'L').charAt(0).toUpperCase()}
+                      {(topArtists[0] || '?').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p style={{ fontSize: '14px', fontWeight: 600 }}>{topArtists[0] || 'Lauriete'}</p>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>1 músicas</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600 }}>{topArtists[0] || 'Nenhum Artista'}</p>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>0 músicas</p>
                     </div>
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>9x</span>
@@ -269,8 +269,8 @@ export default function DashboardPage() {
                       <Music2 size={16} color="var(--accent)" />
                     </div>
                     <div>
-                      <p style={{ fontSize: '14px', fontWeight: 600 }}>{recentlyAdded[0]?.title || 'É Ele'}</p>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{recentlyAdded[0]?.artist || 'Lauriete'}</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600 }}>{recentlyAdded[0]?.title || 'Sem músicas'}</p>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{recentlyAdded[0]?.artist || '—'}</p>
                     </div>
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>9x</span>
