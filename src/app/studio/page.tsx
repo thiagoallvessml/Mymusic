@@ -80,7 +80,9 @@ export default function StudioPage() {
   
   const [isProcessing, setIsProcessing] = useState(false)
   const [progressMsg, setProgressMsg] = useState('')
+  const [progressPct, setProgressPct] = useState(0)
   const [errorLine, setErrorLine] = useState('')
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Preview state
   const [previewPlayer, setPreviewPlayer] = useState<Tone.Player | null>(null)
@@ -161,27 +163,50 @@ export default function StudioPage() {
     }
   }
 
+  function startSimulatedProgress(from: number, to: number, durationMs: number) {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+    let current = from
+    const step = (to - from) / (durationMs / 100)
+    progressTimerRef.current = setInterval(() => {
+      current = Math.min(current + step, to)
+      setProgressPct(Math.round(current))
+      if (current >= to && progressTimerRef.current) clearInterval(progressTimerRef.current)
+    }, 100)
+  }
+
+  function stopSimulatedProgress() {
+    if (progressTimerRef.current) { clearInterval(progressTimerRef.current); progressTimerRef.current = null }
+  }
+
   async function processAndSave() {
     if (!selectedSong) return
     if (isProcessing) return
     
     setIsProcessing(true)
     setErrorLine('')
+    setProgressPct(0)
     
     try {
       if (previewPlayer) previewPlayer.stop()
       setIsPlaying(false)
 
+      // 0-15%: Download & decode
       setProgressMsg('Baixando e decodificando áudio original...')
+      startSimulatedProgress(0, 15, 3000)
       
       const toneBuffer = new Tone.ToneAudioBuffer()
       await toneBuffer.load(selectedSong.fileUrl)
       const audioBuffer = toneBuffer.get()
       
       if (!audioBuffer) throw new Error("Falha ao decodificar o áudio original")
+      stopSimulatedProgress()
+      setProgressPct(15)
       
-      setProgressMsg(`Modificando tom em renderização offline...`)
+      // 15-60%: Offline render (simulated based on audio duration)
+      setProgressMsg(`Renderizando tom modificado...`)
       const duration = audioBuffer.duration
+      const estimatedRenderMs = Math.max(duration * 500, 2000) // rough estimate
+      startSimulatedProgress(15, 58, estimatedRenderMs)
       
       const renderedBuffer = await Tone.Offline(async () => {
         const offlinePlayer = new Tone.Player(audioBuffer)
@@ -189,16 +214,24 @@ export default function StudioPage() {
         offlinePlayer.connect(offlinePitch)
         offlinePlayer.start(0)
       }, duration)
+      
+      stopSimulatedProgress()
+      setProgressPct(60)
 
+      // 60-70%: WAV conversion
       setProgressMsg('Convertendo para formato WAV...')
+      startSimulatedProgress(60, 70, 1000)
       const rawAudioBuffer = renderedBuffer.get()
       if (!rawAudioBuffer) throw new Error("A renderização falhou")
       
       const wavBlob = audioBufferToWav(rawAudioBuffer)
       const filename = `${selectedSong.title}_Tom_${pitchShift}.wav`
+      stopSimulatedProgress()
+      setProgressPct(70)
 
-      // Step 1: Get presigned upload URL from our API
+      // 70-75%: Get presigned URL
       setProgressMsg('Preparando upload...')
+      setProgressPct(72)
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -211,9 +244,11 @@ export default function StudioPage() {
       
       if (!uploadRes.ok) throw new Error("Erro ao gerar URL de upload")
       const { uploadUrl, key } = await uploadRes.json()
+      setProgressPct(75)
 
-      // Step 2: Upload file directly to R2 via presigned URL
+      // 75-90%: Upload to R2
       setProgressMsg('Enviando arquivo para nuvem...')
+      startSimulatedProgress(75, 88, 4000)
       const putRes = await fetch(uploadUrl, {
         method: 'PUT',
         body: wavBlob,
@@ -221,8 +256,10 @@ export default function StudioPage() {
       })
       
       if (!putRes.ok) throw new Error("Erro ao enviar arquivo para o armazenamento")
+      stopSimulatedProgress()
+      setProgressPct(90)
 
-      // Step 3: Save song metadata in database
+      // 90-100%: Save metadata
       setProgressMsg('Salvando metadados...')
       const newTitle = `${selectedSong.title} (Tom ${pitchShift > 0 ? '+'+pitchShift : pitchShift})`
       const metaRes = await fetch('/api/songs', {
@@ -240,16 +277,20 @@ export default function StudioPage() {
       
       if (!metaRes.ok) throw new Error("Erro ao salvar metadados")
       
+      setProgressPct(100)
       setProgressMsg('Salvo com sucesso na sua biblioteca!')
       setTimeout(() => {
         setProgressMsg('')
+        setProgressPct(0)
         router.push('/library')
       }, 2000)
 
     } catch (err: any) {
       console.error(err)
+      stopSimulatedProgress()
       setErrorLine(`Erro: ${err.message || 'Falha no processamento.'}`)
       setProgressMsg('')
+      setProgressPct(0)
     } finally {
       setIsProcessing(false)
     }
@@ -349,9 +390,17 @@ export default function StudioPage() {
 
             {/* Warnings and Status */}
             {progressMsg && (
-              <div style={{ marginTop: '24px', padding: '16px', background: 'var(--bg-3)', borderRadius: '8px', borderLeft: '3px solid var(--accent)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {isProcessing && <Loader2 size={16} className="animate-spin" color="var(--accent)" />}
-                <p style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>{progressMsg}</p>
+              <div style={{ marginTop: '24px', padding: '16px', background: 'var(--bg-3)', borderRadius: '12px', borderLeft: '3px solid var(--accent)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: isProcessing ? '12px' : '0' }}>
+                  {isProcessing && <Loader2 size={16} className="animate-spin" color="var(--accent)" />}
+                  <p style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500, flex: 1 }}>{progressMsg}</p>
+                  {isProcessing && <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)' }}>{progressPct}%</span>}
+                </div>
+                {isProcessing && (
+                  <div style={{ width: '100%', height: '6px', background: 'var(--bg-4)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: `${progressPct}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))', borderRadius: '3px', transition: 'width 0.15s ease-out' }} />
+                  </div>
+                )}
               </div>
             )}
             
