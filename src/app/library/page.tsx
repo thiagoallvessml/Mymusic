@@ -221,10 +221,10 @@ export default function LibraryPage() {
 
                     {/* Meta */}
                     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <p style={{ fontSize: '15px', fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--accent)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <p className="song-meta-title" style={{ fontSize: '15px', fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--accent)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {song.title}
                       </p>
-                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <p className="song-meta-artist" style={{ fontSize: '13px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {song.artist}
                       </p>
                     </div>
@@ -273,6 +273,13 @@ export default function LibraryPage() {
         @media (max-width: 768px) {
           .library-song-row {
             padding: 10px 12px !important;
+          }
+          .song-meta-title,
+          .song-meta-artist {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            word-break: break-word;
           }
           .mobile-hamburger { display: block !important; }
           .hide-on-mobile { display: none !important; }
