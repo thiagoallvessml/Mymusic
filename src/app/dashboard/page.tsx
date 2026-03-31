@@ -90,7 +90,7 @@ export default function DashboardPage() {
           padding: '24px 40px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 30
         }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
             {/* Hamburger for mobile */}
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -101,7 +101,7 @@ export default function DashboardPage() {
             </button>
             
             {/* Search box */}
-            <div style={{
+            <div className="dash-search" style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               background: 'var(--bg-3)', opacity: 0.8, borderRadius: '100px',
               padding: '10px 16px', width: '380px', border: '1px solid rgba(255,255,255,0.05)',
@@ -118,23 +118,23 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={() => setChurchModal(true)} style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
+          <div className="dash-header-btns" style={{ display: 'flex', gap: '8px' }}>
+            <button className="dash-btn" onClick={() => setChurchModal(true)} style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
               background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)',
               padding: '10px 20px', borderRadius: '100px',
               fontWeight: 600, fontSize: '13px', transition: 'background 0.2s'
             }}>
               <Settings size={16} /> <span className="hide-on-mobile">Modo Igreja</span>
             </button>
-            <button style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
+            <button className="dash-btn" onClick={() => router.push('/library')} style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
               background: 'var(--accent)', color: '#000',
               padding: '10px 20px', borderRadius: '100px',
               fontWeight: 600, fontSize: '13px', transition: 'background 0.2s', opacity: 0.9,
               whiteSpace: 'nowrap'
             }}>
-              <Plus size={16} /> <span className="hide-on-mobile">Adicionar música</span>
+              <Plus size={16} /> <span className="hide-on-mobile">Adicionar</span>
             </button>
           </div>
         </header>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
         <main className="mobile-content-padding" style={{ padding: '0 40px 40px 40px', flex: 1, maxWidth: '1400px' }}>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Dashboard</h1>
+            <h1 className="dash-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Dashboard</h1>
             <p className="hide-on-mobile" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Sua biblioteca em números</p>
           </div>
 
@@ -371,6 +371,48 @@ export default function DashboardPage() {
           .mobile-hamburger { display: block !important; }
           .hide-on-mobile { display: none !important; }
           .sidebar-mobile-close { display: block !important; }
+          .dash-title {
+            font-size: 20px !important;
+          }
+          .dash-search {
+            padding: 7px 12px !important;
+            width: 100% !important;
+          }
+          .dash-search input {
+            font-size: 12px !important;
+          }
+          .dash-btn {
+            padding: 7px 12px !important;
+            font-size: 11px !important;
+          }
+          .dash-btn svg {
+            width: 14px !important;
+            height: 14px !important;
+          }
+          .dashboard-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+          }
+          .dashboard-stats-grid > div {
+            padding: 14px !important;
+            border-radius: 12px !important;
+            gap: 10px !important;
+          }
+          .dashboard-stats-grid > div > div:first-child {
+            padding: 10px !important;
+            border-radius: 10px !important;
+          }
+          .dashboard-stats-grid > div > div:first-child svg {
+            width: 18px !important;
+            height: 18px !important;
+          }
+          .dashboard-stats-grid p:last-child {
+            font-size: 18px !important;
+          }
+          .dashboard-content-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
         }
       `}} />
     </div>
