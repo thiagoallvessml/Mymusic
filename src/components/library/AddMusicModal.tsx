@@ -266,7 +266,7 @@ export function AddMusicModal({ isOpen, onClose, onSuccess }: { isOpen: boolean,
                 Cancelar
               </button>
               <button onClick={handleAddPlus} style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#fff', border: '1px solid #444', borderRadius: '8px', background: '#222', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Plus size={16} /> Adicionar +
+                <Plus size={16} /> Adicionar Outra
               </button>
               <button onClick={handleSave} style={{ padding: '10px 24px', fontSize: '14px', fontWeight: 600, color: '#000', borderRadius: '8px', background: '#b065f9' }}>
                 Salvar
