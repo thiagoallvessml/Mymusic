@@ -174,7 +174,6 @@ export default function StudioPage() {
 
       setProgressMsg('Baixando e decodificando áudio original...')
       
-      // Use Tone.ToneAudioBuffer which has better codec support across browsers
       const toneBuffer = new Tone.ToneAudioBuffer()
       await toneBuffer.load(selectedSong.fileUrl)
       const audioBuffer = toneBuffer.get()
@@ -184,7 +183,6 @@ export default function StudioPage() {
       setProgressMsg(`Modificando tom em renderização offline...`)
       const duration = audioBuffer.duration
       
-      // Essa função bloqueia o contexto, renderizando toda a faixa o mais rápido possível no motor do browser
       const renderedBuffer = await Tone.Offline(async () => {
         const offlinePlayer = new Tone.Player(audioBuffer)
         const offlinePitch = new Tone.PitchShift({ pitch: pitchShift }).toDestination()
@@ -192,26 +190,55 @@ export default function StudioPage() {
         offlinePlayer.start(0)
       }, duration)
 
-      setProgressMsg('Convertendo para formato padrão...')
+      setProgressMsg('Convertendo para formato WAV...')
       const rawAudioBuffer = renderedBuffer.get()
-      if (!rawAudioBuffer) throw new Error("A renderização falhou gerar um canal válido")
+      if (!rawAudioBuffer) throw new Error("A renderização falhou")
       
       const wavBlob = audioBufferToWav(rawAudioBuffer)
-      const wavFile = new File([wavBlob], `${selectedSong.title}_Tom_${pitchShift}.wav`, { type: 'audio/wav' })
+      const filename = `${selectedSong.title}_Tom_${pitchShift}.wav`
 
-      setProgressMsg('Fazendo upload p/ Cloudflare (salvando)...')
-      
-      const formData = new FormData()
-      formData.append('file', wavFile)
-      formData.append('title', `${selectedSong.title} (Tom ${pitchShift > 0 ? '+'+pitchShift : pitchShift})`)
-      formData.append('artist', selectedSong.artist)
-
-      const saveRes = await fetch('/api/upload', {
+      // Step 1: Get presigned upload URL from our API
+      setProgressMsg('Preparando upload...')
+      const uploadRes = await fetch('/api/upload', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename,
+          contentType: 'audio/wav',
+          size: wavBlob.size
+        })
       })
       
-      if (!saveRes.ok) throw new Error("Erro no upload")
+      if (!uploadRes.ok) throw new Error("Erro ao gerar URL de upload")
+      const { uploadUrl, key } = await uploadRes.json()
+
+      // Step 2: Upload file directly to R2 via presigned URL
+      setProgressMsg('Enviando arquivo para nuvem...')
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: wavBlob,
+        headers: { 'Content-Type': 'audio/wav' }
+      })
+      
+      if (!putRes.ok) throw new Error("Erro ao enviar arquivo para o armazenamento")
+
+      // Step 3: Save song metadata in database
+      setProgressMsg('Salvando metadados...')
+      const newTitle = `${selectedSong.title} (Tom ${pitchShift > 0 ? '+'+pitchShift : pitchShift})`
+      const metaRes = await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTitle,
+          artist: selectedSong.artist,
+          fileKey: key,
+          duration: Math.round(duration),
+          size: wavBlob.size,
+          mimeType: 'audio/wav'
+        })
+      })
+      
+      if (!metaRes.ok) throw new Error("Erro ao salvar metadados")
       
       setProgressMsg('Salvo com sucesso na sua biblioteca!')
       setTimeout(() => {
@@ -221,7 +248,7 @@ export default function StudioPage() {
 
     } catch (err: any) {
       console.error(err)
-      setErrorLine(`Erro: ${err.message || 'Formato de áudio não suportado pelo navegador.'}`)
+      setErrorLine(`Erro: ${err.message || 'Falha no processamento.'}`)
       setProgressMsg('')
     } finally {
       setIsProcessing(false)
