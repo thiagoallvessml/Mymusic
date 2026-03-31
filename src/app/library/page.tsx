@@ -120,19 +120,20 @@ export default function LibraryPage() {
 
         <main className="mobile-content-padding" style={{ padding: '0 40px 40px 40px', flex: 1, maxWidth: '1400px' }}>
           {/* Actions bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+        <div className="lib-actions-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Sua Biblioteca</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
+            <h1 className="lib-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Sua Biblioteca</h1>
+            <p className="lib-subtitle" style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
               {songs.length} {songs.length === 1 ? 'música' : 'músicas'}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="lib-buttons" style={{ display: 'flex', gap: '8px' }}>
             {filtered.length > 0 && (
               <button
                 onClick={playAll}
+                className="lib-btn"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
+                  display: 'flex', alignItems: 'center', gap: '6px',
                   padding: '10px 20px', background: 'var(--accent)', color: '#000',
                   borderRadius: '100px', fontWeight: 600, fontSize: '14px', transition: 'background 0.2s'
                 }}
@@ -142,14 +143,15 @@ export default function LibraryPage() {
             )}
             <button
               onClick={() => setShowUpload(true)}
+              className="lib-btn"
               style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
+                display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '10px 20px', background: 'var(--bg-3)', color: 'var(--text)',
                 borderRadius: '100px', fontWeight: 600, fontSize: '14px',
                 border: '1px solid var(--border)', transition: 'background 0.2s'
               }}
             >
-              <Plus size={16} /> Adicionar música
+              <Plus size={16} /> Adicionar
             </button>
           </div>
         </div>
@@ -271,6 +273,21 @@ export default function LibraryPage() {
           opacity: 1 !important;
         }
         @media (max-width: 768px) {
+          .lib-title {
+            font-size: 20px !important;
+          }
+          .lib-subtitle {
+            font-size: 12px !important;
+          }
+          .lib-btn {
+            padding: 7px 14px !important;
+            font-size: 12px !important;
+            gap: 4px !important;
+          }
+          .lib-btn svg {
+            width: 14px !important;
+            height: 14px !important;
+          }
           .library-song-row {
             padding: 10px 12px !important;
           }
