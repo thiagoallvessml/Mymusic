@@ -273,6 +273,13 @@ export default function LibraryPage() {
           opacity: 1 !important;
         }
         @media (max-width: 768px) {
+          .lib-actions-bar {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          .lib-buttons {
+            width: 100% !important;
+          }
           .lib-title {
             font-size: 20px !important;
           }
