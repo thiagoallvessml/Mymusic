@@ -16,8 +16,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   }
 
-  const ext = filename.split('.').pop()
-  const key = `songs/${session.user.id}/${randomUUID()}.${ext}`
+  // Preserva o nome do arquivo original para facilitar identificação no painel do Cloudflare R2
+  // Substitui espaços por underline para evitar problemas de URL, e adiciona um timestamp curto
+  const safeName = filename.replace(/\s+/g, '_')
+  const uniquePrefix = Date.now().toString(36)
+  const key = `songs/${session.user.id}/${uniquePrefix}_${safeName}`
 
   const uploadUrl = await getUploadUrl(key, contentType)
 
