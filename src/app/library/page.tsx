@@ -90,7 +90,7 @@ export default function LibraryPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '24px 40px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 30
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
             <button 
               onClick={() => setIsSidebarOpen(true)}
               style={{ color: 'var(--text)', display: 'none' }}

@@ -128,9 +128,9 @@ input[type=range]:hover::-webkit-slider-thumb {
     margin-left: 0;
   }
   .mobile-header-padding {
-    padding: 16px 20px !important;
+    padding: 12px 16px !important;
   }
   .mobile-content-padding {
-    padding: 0 20px 40px 20px !important;
+    padding: 0 16px 40px 16px !important;
   }
 }
