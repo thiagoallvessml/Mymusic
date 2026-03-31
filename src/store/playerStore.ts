@@ -36,8 +36,13 @@ interface PlayerState {
   
   favorites: string[]
   history: string[]
+  playlists: { id: string; name: string; songIds: string[] }[]
   toggleFavorite: (id: string) => void
   addToHistory: (id: string) => void
+  createPlaylist: (name: string) => void
+  deletePlaylist: (id: string) => void
+  addSongToPlaylist: (playlistId: string, songId: string) => void
+  removeSongFromPlaylist: (playlistId: string, songId: string) => void
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -52,6 +57,7 @@ export const usePlayerStore = create<PlayerState>()(
       repeat: 'none',
       favorites: [],
       history: [],
+      playlists: [],
 
   setQueue: (songs, startIndex = 0) =>
     set({ queue: songs, currentIndex: startIndex, isPlaying: true }),
@@ -105,17 +111,54 @@ export const usePlayerStore = create<PlayerState>()(
       : [...s.favorites, id]
   })),
   
-  addToHistory: (id) => set((s) => {
-    const next = s.history.filter(x => x !== id)
-    return { history: [id, ...next].slice(0, 100) } // Keep last 100
-  })
+  addToHistory: (id: string) => {
+    set((state) => {
+      const hist = state.history.filter(sId => sId !== id)
+      hist.unshift(id)
+      if (hist.length > 100) hist.pop()
+      return { history: hist }
+    })
+  },
+
+  createPlaylist: (name: string) => {
+    set((state) => ({
+      playlists: [...state.playlists, { id: Date.now().toString(), name, songIds: [] }]
+    }))
+  },
+
+  deletePlaylist: (id: string) => {
+    set((state) => ({
+      playlists: state.playlists.filter(p => p.id !== id)
+    }))
+  },
+
+  addSongToPlaylist: (playlistId: string, songId: string) => {
+    set((state) => ({
+      playlists: state.playlists.map(p => 
+        p.id === playlistId 
+          ? { ...p, songIds: p.songIds.includes(songId) ? p.songIds : [...p.songIds, songId] }
+          : p
+      )
+    }))
+  },
+
+  removeSongFromPlaylist: (playlistId: string, songId: string) => {
+    set((state) => ({
+      playlists: state.playlists.map(p => 
+        p.id === playlistId 
+          ? { ...p, songIds: p.songIds.filter(id => id !== songId) }
+          : p
+      )
+    }))
+  }
     }),
     {
       name: 'mymusic-player-storage',
       partialize: (state) => ({ 
         volume: state.volume, 
         favorites: state.favorites, 
-        history: state.history 
+        history: state.history,
+        playlists: state.playlists
       }) // Only persist these
     }
   )

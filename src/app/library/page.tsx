@@ -7,7 +7,7 @@ import Player from '@/components/player/Player'
 import {
   Play, Pause, Upload, Search, LogOut, Music2,
   Clock, MoreVertical, Plus, Heart, X, CheckCircle2, Menu, Crown, ArrowUpRight,
-  Pencil, Trash2
+  Pencil, Trash2, ListMusic
 } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { AddMusicModal } from '@/components/library/AddMusicModal'
@@ -21,7 +21,7 @@ function fmt(s: number) {
 export default function LibraryPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const { playSong, setQueue, currentIndex, queue, isPlaying, togglePlay, favorites, toggleFavorite } = usePlayerStore()
+  const { playSong, setQueue, currentIndex, queue, isPlaying, togglePlay, favorites, toggleFavorite, playlists, addSongToPlaylist } = usePlayerStore()
 
   const [songs, setSongs] = useState<Song[]>([])
   const [filtered, setFiltered] = useState<Song[]>([])
@@ -36,6 +36,7 @@ export default function LibraryPage() {
   const [editTitle, setEditTitle] = useState('')
   const [editArtist, setEditArtist] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<Song | null>(null)
+  const [playlistModalSong, setPlaylistModalSong] = useState<Song | null>(null)
 
   const userPlan = (session?.user as any)?.plan || 'FREE'
   const planLimit = userPlan === 'ADVANCED' ? Infinity : userPlan === 'INTERMEDIATE' ? 500 : userPlan === 'BASIC' ? 100 : 2
@@ -356,6 +357,26 @@ export default function LibraryPage() {
                             </button>
                             <button
                               onClick={() => {
+                                if (playlists.length === 0) {
+                                  alert('Você ainda não tem playlists. Crie uma na página de Playlists primeiro!')
+                                } else {
+                                  setPlaylistModalSong(song)
+                                }
+                                setMenuSongId(null)
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                padding: '10px 12px', background: 'transparent', color: 'var(--text)',
+                                border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                                textAlign: 'left'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-3)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <ListMusic size={15} /> Adicionar à Playlist
+                            </button>
+                            <button
+                              onClick={() => {
                                 setDeleteConfirm(song)
                                 setMenuSongId(null)
                               }}
@@ -458,6 +479,53 @@ export default function LibraryPage() {
               >
                 Excluir
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Add To Playlist Modal */}
+      {playlistModalSong && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'var(--bg-2)', padding: '24px', borderRadius: '16px', maxWidth: '400px', width: '90%', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Adicionar à Playlist</h3>
+              <button onClick={() => setPlaylistModalSong(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Selecione uma playlist para adicionar <strong>{playlistModalSong.title}</strong>:
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+              {playlists.map(playlist => {
+                const isAdded = playlist.songIds.includes(playlistModalSong.id)
+                return (
+                  <button
+                    key={playlist.id}
+                    disabled={isAdded}
+                    onClick={() => {
+                      addSongToPlaylist(playlist.id, playlistModalSong.id)
+                      setPlaylistModalSong(null)
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                      padding: '16px', background: 'var(--bg-3)', border: '1px solid var(--border)',
+                      borderRadius: '12px', color: isAdded ? 'var(--text-muted)' : 'var(--text)',
+                      cursor: isAdded ? 'not-allowed' : 'pointer', transition: 'background 0.2s',
+                      opacity: isAdded ? 0.7 : 1
+                    }}
+                    onMouseEnter={e => { if (!isAdded) e.currentTarget.style.background = 'var(--bg-4)' }}
+                    onMouseLeave={e => { if (!isAdded) e.currentTarget.style.background = 'var(--bg-3)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <ListMusic size={18} color={isAdded ? "var(--text-muted)" : "var(--accent)"} />
+                      <span style={{ fontWeight: 600 }}>{playlist.name}</span>
+                    </div>
+                    {isAdded && <CheckCircle2 size={16} color="var(--text-muted)" />}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
