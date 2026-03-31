@@ -368,7 +368,10 @@ export default function StudioPage() {
 
           {/* Box de Ajuste */}
           <div style={{ background: 'var(--bg-2)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border)', opacity: selectedSong ? 1 : 0.5, pointerEvents: selectedSong && !isProcessing ? 'auto' : 'none' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>2. Configurar Modificação</h2>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>
+              2. Configurar Modificação
+              {selectedSong && <span style={{ color: 'var(--accent)', fontWeight: 400, marginLeft: '8px' }}>- {selectedSong.title}</span>}
+            </h2>
             
             <div style={{ padding: '12px 16px', background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: '8px', marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
               <Info size={18} color="var(--accent)" style={{ flexShrink: 0, marginTop: '2px' }} />
