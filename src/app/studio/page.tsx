@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info } from 'lucide-react'
+import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info, Crown, ArrowUpRight, Lock } from 'lucide-react'
 import * as Tone from 'tone'
 
 interface Song {
@@ -96,6 +96,9 @@ export default function StudioPage() {
   
   const userPlan = (session?.user as any)?.plan || 'FREE'
   const studioCredits = (session?.user as any)?.studioCredits || 0
+  const hasStudioAccess = userPlan === 'ADVANCED'
+  const canGenerate = hasStudioAccess || studioCredits > 0
+  const studioPrice = userPlan === 'BASIC' ? '7,99' : userPlan === 'INTERMEDIATE' ? '5,99' : '9,99'
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -124,11 +127,7 @@ export default function StudioPage() {
 
   async function handlePreview() {
     if (!selectedSong) return
-    if (userPlan !== 'ADVANCED' && studioCredits <= 0) {
-      setShowPaywall(true)
-      return
-    }
-    
+    // Prévia é gratuita para todos os planos
     setErrorLine('')
     try {
       await Tone.start()
@@ -191,11 +190,6 @@ export default function StudioPage() {
 
   async function processAndSave() {
     if (!selectedSong) return
-    if (userPlan !== 'ADVANCED' && studioCredits <= 0) {
-      setShowPaywall(true)
-      return
-    }
-
     if (isProcessing) return
     
     setIsProcessing(true)
@@ -324,7 +318,39 @@ export default function StudioPage() {
 
       <main style={{ flex: 1, padding: '40px', maxWidth: '1200px' }} className="mobile-content-padding layout-main">
         <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Estúdio</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '32px' }}>Ajuste o tom das suas faixas salvando novas versões sem perder a velocidade final.</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>Ajuste o tom das suas faixas salvando novas versões sem perder a velocidade final.</p>
+
+        {/* Plan Status Banner */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px',
+          background: hasStudioAccess ? 'var(--accent-dim)' : 'rgba(239, 68, 68, 0.08)',
+          border: `1px solid ${hasStudioAccess ? 'var(--accent)' : 'rgba(239, 68, 68, 0.25)'}`,
+          borderRadius: '12px', marginBottom: '28px', flexWrap: 'wrap'
+        }}>
+          <Crown size={18} color={hasStudioAccess ? 'var(--accent)' : '#ef4444'} style={{ flexShrink: 0 }} />
+          <p style={{ fontSize: '13px', color: 'var(--text)', flex: 1, lineHeight: 1.5 }}>
+            {hasStudioAccess ? (
+              <><strong>Plano Advanced</strong> — Geração ilimitada de tons ativa.</>              
+            ) : (
+              <>
+                Plano <strong>{userPlan}</strong> — A prévia é gratuita. Para gerar e salvar, 
+                {canGenerate 
+                  ? <> você tem <strong style={{ color: 'var(--accent)' }}>{studioCredits} crédito{studioCredits !== 1 ? 's' : ''}</strong> disponíve{studioCredits !== 1 ? 'is' : 'l'}.</>
+                  : <> compre um crédito avulso por <strong>R$ {studioPrice}</strong> ou faça upgrade.</>
+                }
+              </>
+            )}
+          </p>
+          {!hasStudioAccess && (
+            <a href="/plans" style={{
+              display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px',
+              background: 'var(--accent)', color: '#000', borderRadius: '100px',
+              fontWeight: 700, fontSize: '12px', textDecoration: 'none', whiteSpace: 'nowrap'
+            }}>
+              Ver Planos <ArrowUpRight size={14} />
+            </a>
+          )}
+        </div>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
           
@@ -454,20 +480,46 @@ export default function StudioPage() {
                 }}
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-                {isPlaying ? 'Parar Prévia' : 'Ouvir Prévia Rápida'}
+                {isPlaying ? 'Parar Prévia' : 'Ouvir Prévia Gratuita'}
               </button>
 
               <button 
-                onClick={processAndSave}
+                onClick={() => {
+                  if (!canGenerate) {
+                    setShowPaywall(true)
+                    return
+                  }
+                  processAndSave()
+                }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  padding: '14px', background: 'var(--accent)', color: '#000',
-                  border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: 'pointer'
+                  padding: '14px', 
+                  background: canGenerate ? 'var(--accent)' : 'var(--bg-4)',
+                  color: canGenerate ? '#000' : 'var(--text-muted)',
+                  border: canGenerate ? 'none' : '1px solid var(--border)', 
+                  borderRadius: '8px', fontWeight: 700, fontSize: '14px', cursor: 'pointer'
                 }}
               >
-                {isProcessing ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                Processar e Salvar Nova Música
+                {isProcessing ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : canGenerate ? (
+                  <Download size={18} />
+                ) : (
+                  <Lock size={18} />
+                )}
+                {isProcessing 
+                  ? 'Processando...' 
+                  : canGenerate 
+                    ? (hasStudioAccess ? 'Processar e Salvar' : `Processar (1 crédito)`)
+                    : `Desbloquear (R$ ${studioPrice})`
+                }
               </button>
+
+              {!hasStudioAccess && canGenerate && (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  Você tem {studioCredits} crédito{studioCredits !== 1 ? 's' : ''} restante{studioCredits !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
 
             {/* Warnings and Status */}
