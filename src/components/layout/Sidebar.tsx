@@ -64,7 +64,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
             <Heart size={20} />
             <span className="sidebar-text">Favoritos</span>
           </a>
-          <a href="#" className={`sidebar-nav-link ${pathname === '/playlists' ? 'active' : ''}`}>
+          <a href="/playlists" className={`sidebar-nav-link ${pathname === '/playlists' ? 'active' : ''}`}>
             <ListMusic size={20} />
             <span className="sidebar-text">Playlists</span>
           </a>
