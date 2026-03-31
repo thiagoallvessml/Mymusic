@@ -70,10 +70,6 @@ export default function DashboardPage() {
   const totalDuration = songs.reduce((acc, s) => acc + s.duration, 0)
   const totalMins = Math.floor(totalDuration / 60)
 
-  // Example data based on the screenshot
-  const recentlyAdded = songs.length > 0 ? songs.slice(0, 1) : []
-  const topArtists = songs.length > 0 ? Array.from(new Set(songs.map(s => s.artist))).slice(0, 1) : []
-
   if (status === 'loading') return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />
 
   return (
@@ -194,107 +190,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Grid Layout below stats */}
-          <div className="dashboard-content-grid">
-            
-            {/* Left Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              {/* Adicionadas recentemente */}
-              <div style={{ background: 'var(--bg-2)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border)', minHeight: '300px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Adicionadas recentemente</h3>
-                  <a href="/library" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none' }}>Ver tudo</a>
-                </div>
-                
-                {/* Example card inside recently added */}
-                <div style={{ width: '120px' }}>
-                  <div style={{
-                    width: '120px', height: '120px', background: 'var(--bg-4)', borderRadius: '12px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px'
-                  }}>
-                    <Music2 size={32} color="var(--accent)" />
-                  </div>
-                  <p style={{ fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {recentlyAdded[0]?.title || 'É Ele'}
-                  </p>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {recentlyAdded[0]?.artist || 'Lauriete'}
-                  </p>
-                </div>
-              </div>
 
-              {/* Artistas em destaque */}
-              <div style={{ background: 'var(--bg-2)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                  <Music2 size={16} color="var(--text-muted)" />
-                  <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Artistas em destaque</h3>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{
-                      width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-3)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '16px', color: 'var(--accent)'
-                    }}>
-                      {(topArtists[0] || 'L').charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: '14px', fontWeight: 600 }}>{topArtists[0] || 'Lauriete'}</p>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>1 músicas</p>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>9x</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              {/* Mais reproduzidas */}
-              <div style={{ background: 'var(--bg-2)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border)', minHeight: '300px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
-                  <span style={{ color: '#eab308' }}>🏆</span>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Mais reproduzidas</h3>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--text-muted)', width: '16px' }}>1</span>
-                    <div style={{
-                      width: '32px', height: '32px', borderRadius: '6px', background: 'var(--bg-4)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Music2 size={16} color="var(--accent)" />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: '14px', fontWeight: 600 }}>{recentlyAdded[0]?.title || 'É Ele'}</p>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{recentlyAdded[0]?.artist || 'Lauriete'}</p>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>9x</span>
-                </div>
-              </div>
-
-              {/* Por gênero */}
-              <div style={{ background: 'var(--bg-2)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                  <span style={{ color: '#ef4444' }}>📉</span>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Por gênero</h3>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '8px 0' }}>
-                  <span style={{ fontSize: '13px', width: '48px' }}>Gospel</span>
-                  <div style={{ flex: 1, height: '4px', background: 'var(--bg-4)', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ width: '100%', height: '100%', background: 'var(--accent)' }}></div>
-                  </div>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>1</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
         </main>
       </div>
 
