@@ -10,7 +10,7 @@ interface Song {
   id: string
   title: string
   artist: string
-  audio_path: string
+  fileUrl: string
   duration: number
 }
 
@@ -136,7 +136,7 @@ export default function StudioPage() {
 
       // Use Tone.ToneAudioBuffer that has better codec support than raw decodeAudioData
       const toneBuffer = new Tone.ToneAudioBuffer()
-      await toneBuffer.load(selectedSong.audio_path)
+      await toneBuffer.load(selectedSong.fileUrl)
 
       const player = new Tone.Player(toneBuffer)
       const pitch = new Tone.PitchShift({ pitch: pitchShift }).toDestination()
@@ -176,7 +176,7 @@ export default function StudioPage() {
       
       // Use Tone.ToneAudioBuffer which has better codec support across browsers
       const toneBuffer = new Tone.ToneAudioBuffer()
-      await toneBuffer.load(selectedSong.audio_path)
+      await toneBuffer.load(selectedSong.fileUrl)
       const audioBuffer = toneBuffer.get()
       
       if (!audioBuffer) throw new Error("Falha ao decodificar o áudio original")
