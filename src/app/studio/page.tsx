@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2 } from 'lucide-react'
+import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info } from 'lucide-react'
 import * as Tone from 'tone'
 
 interface Song {
@@ -370,6 +370,13 @@ export default function StudioPage() {
           <div style={{ background: 'var(--bg-2)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border)', opacity: selectedSong ? 1 : 0.5, pointerEvents: selectedSong && !isProcessing ? 'auto' : 'none' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '24px' }}>2. Configurar Modificação</h2>
             
+            <div style={{ padding: '12px 16px', background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: '8px', marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <Info size={18} color="var(--accent)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <p style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.4 }}>
+                <strong>Aviso:</strong> Para usar a Configuração de tom, mexa na barra abaixo para a esquerda ou direita, ou clique no número para digitar manualmente.
+              </p>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600 }}>Tom (Semitons)</span>
               {isEditingPitch ? (
@@ -406,7 +413,8 @@ export default function StudioPage() {
               min="-12" max="12" step="1" 
               value={pitchShift}
               onChange={e => setPitchShift(Number(e.target.value))}
-              style={{ width: '100%', marginBottom: '16px', accentColor: 'var(--accent)' }}
+              className="thick-slider"
+              style={{ width: '100%', marginBottom: '16px', accentColor: 'var(--accent)', height: '8px', cursor: 'pointer' }}
             />
             
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '32px' }}>

@@ -44,16 +44,29 @@ input[type=range]::-webkit-slider-track {
 }
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--text);
-  margin-top: -4px;
+  margin-top: -5px;
   transition: transform 0.1s, background 0.1s;
 }
 input[type=range]:hover::-webkit-slider-thumb {
   background: var(--accent);
   transform: scale(1.2);
+}
+
+.thick-slider::-webkit-slider-track {
+  height: 8px !important;
+  border-radius: 4px !important;
+  background: var(--bg-3) !important;
+  border: 1px solid var(--border);
+}
+.thick-slider::-webkit-slider-thumb {
+  width: 18px !important;
+  height: 18px !important;
+  margin-top: -6px !important;
+  background: var(--accent) !important;
 }
 
 /* Responsive Layout Classes */
