@@ -75,6 +75,7 @@ export default function StudioPage() {
   
   const [songs, setSongs] = useState<Song[]>([])
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   
   const [pitchShift, setPitchShift] = useState(-1) // default -1 semitone
   
@@ -312,10 +313,37 @@ export default function StudioPage() {
           <div style={{ background: 'var(--bg-2)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border)' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>1. Escolher Música Original</h2>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              background: 'var(--bg-3)', opacity: 0.8, borderRadius: '8px',
+              padding: '10px 16px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <Search size={16} color="var(--text-muted)" />
+              <input
+                placeholder="Buscar músicas..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  background: 'none', border: 'none', outline: 'none',
+                  color: 'var(--text)', fontSize: '13px', width: '100%'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '350px', overflowY: 'auto', paddingRight: '8px' }}>
               {songs.length === 0 && <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Sua biblioteca está vazia.</p>}
               
-              {songs.map(song => (
+              {(() => {
+                const filtered = songs.filter(s => 
+                  s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                  s.artist.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                
+                if (songs.length > 0 && filtered.length === 0) {
+                  return <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Nenhuma música encontrada.</p>
+                }
+
+                return filtered.map(song => (
                 <div 
                   key={song.id}
                   onClick={() => setSelectedSong(song)}
@@ -332,7 +360,7 @@ export default function StudioPage() {
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{song.artist}</p>
                   </div>
                 </div>
-              ))}
+              ))})()}
             </div>
           </div>
 
