@@ -122,10 +122,12 @@ export default function LibraryPage() {
           {/* Actions bar */}
         <div className="lib-actions-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h1 className="lib-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Sua Biblioteca</h1>
-            <p className="lib-subtitle" style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-              {songs.length} {songs.length === 1 ? 'música' : 'músicas'}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+              <h1 className="lib-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Sua Biblioteca</h1>
+              <span className="lib-subtitle" style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                {songs.length} {songs.length === 1 ? 'música' : 'músicas'}
+              </span>
+            </div>
           </div>
           <div className="lib-buttons" style={{ display: 'flex', gap: '8px' }}>
             {filtered.length > 0 && (
