@@ -77,7 +77,7 @@ export default function DashboardPage() {
   if (status === 'loading') return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', paddingBottom: queue.length ? 'var(--player-h)' : '0' }}>
+    <div style={{ display: 'flex', minHeight: '100%', background: 'var(--bg)', color: 'var(--text)' }}>
       
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 

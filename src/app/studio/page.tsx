@@ -226,7 +226,7 @@ export default function StudioPage() {
   if (status === 'loading') return null
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+    <div style={{ display: 'flex', minHeight: '100%', background: 'var(--bg)', color: 'var(--text)' }}>
       <Sidebar isOpen={false} onClose={() => {}} />
 
       <main style={{ flex: 1, padding: '40px', maxWidth: '1200px' }} className="mobile-content-padding layout-main">

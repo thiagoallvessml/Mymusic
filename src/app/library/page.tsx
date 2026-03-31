@@ -81,7 +81,7 @@ export default function LibraryPage() {
   const currentSong = queue[currentIndex]
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', paddingBottom: queue.length ? 'var(--player-h)' : '0' }}>
+    <div style={{ display: 'flex', minHeight: '100%', background: 'var(--bg)', color: 'var(--text)' }}>
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <div className="layout-main" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

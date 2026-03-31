@@ -68,7 +68,7 @@ export default function Player() {
   return (
     <>
       <div className="player-container" style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, height: 'var(--player-h)',
+        position: 'relative', width: '100%', height: 'var(--player-h)',
         background: 'rgba(17,17,17,0.95)', backdropFilter: 'blur(20px)',
         borderTop: '1px solid var(--border)', zIndex: 100,
         display: 'flex', alignItems: 'center', padding: '0 24px', gap: '24px'
@@ -261,8 +261,6 @@ export default function Player() {
             gap: 12px !important;
             height: auto !important;
             min-height: var(--player-h) !important;
-            position: fixed !important;
-            bottom: 0 !important;
             justify-content: center !important;
           }
           .player-song-info {
