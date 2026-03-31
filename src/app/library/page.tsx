@@ -6,7 +6,7 @@ import { usePlayerStore, Song } from '@/store/playerStore'
 import Player from '@/components/player/Player'
 import {
   Play, Pause, Upload, Search, LogOut, Music2,
-  Clock, MoreVertical, Plus, Heart, X, CheckCircle2, Menu
+  Clock, MoreVertical, Plus, Heart, X, CheckCircle2, Menu, Crown, ArrowUpRight
 } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { AddMusicModal } from '@/components/library/AddMusicModal'
@@ -29,6 +29,10 @@ export default function LibraryPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const userPlan = (session?.user as any)?.plan || 'FREE'
+  const planLimit = userPlan === 'ADVANCED' ? Infinity : userPlan === 'INTERMEDIATE' ? 500 : userPlan === 'BASIC' ? 100 : 2
+  const isAtLimit = songs.length >= planLimit
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -125,7 +129,7 @@ export default function LibraryPage() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
               <h1 className="lib-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Sua Biblioteca</h1>
               <span className="lib-subtitle" style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                {songs.length} {songs.length === 1 ? 'música' : 'músicas'}
+                {songs.length} / {planLimit === Infinity ? '∞' : planLimit} {songs.length === 1 ? 'música' : 'músicas'}
               </span>
             </div>
           </div>
@@ -144,19 +148,47 @@ export default function LibraryPage() {
               </button>
             )}
             <button
-              onClick={() => setShowUpload(true)}
+              onClick={() => {
+                if (isAtLimit) {
+                  alert(`Você atingiu o limite de ${planLimit} músicas do plano ${userPlan}. Faça upgrade em Planos para continuar.`)
+                  return
+                }
+                setShowUpload(true)
+              }}
               className="lib-btn"
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '10px 20px', background: 'var(--bg-3)', color: 'var(--text)',
+                padding: '10px 20px', background: isAtLimit ? 'var(--bg-4)' : 'var(--bg-3)', color: isAtLimit ? 'var(--text-muted)' : 'var(--text)',
                 borderRadius: '100px', fontWeight: 600, fontSize: '14px',
-                border: '1px solid var(--border)', transition: 'background 0.2s'
+                border: '1px solid var(--border)', transition: 'background 0.2s',
+                cursor: isAtLimit ? 'not-allowed' : 'pointer'
               }}
             >
               <Plus size={16} /> Adicionar
             </button>
           </div>
         </div>
+
+        {/* Plan Limit Banner */}
+        {isAtLimit && (
+          <div style={{ 
+            display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px',
+            background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '12px', marginBottom: '24px'
+          }}>
+            <Crown size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+            <p style={{ fontSize: '13px', color: 'var(--text)', flex: 1, lineHeight: 1.4 }}>
+              Você atingiu o limite de <strong>{planLimit} músicas</strong> do plano <strong>{userPlan}</strong>.
+            </p>
+            <a href="/plans" style={{ 
+              display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px',
+              background: 'var(--accent)', color: '#000', borderRadius: '100px',
+              fontWeight: 700, fontSize: '12px', textDecoration: 'none', whiteSpace: 'nowrap'
+            }}>
+              Upgrade <ArrowUpRight size={14} />
+            </a>
+          </div>
+        )}
 
         <AddMusicModal isOpen={showUpload} onClose={() => setShowUpload(false)} onSuccess={fetchSongs} />
 
