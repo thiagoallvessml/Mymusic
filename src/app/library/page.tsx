@@ -316,9 +316,24 @@ export default function LibraryPage() {
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFavorite(song.id); }}
                         className="hide-on-mobile"
-                        style={{ color: favorites.includes(song.id) ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.2s' }}
+                        style={{ color: favorites.includes(song.id) ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.2s', padding: '4px' }}
                       >
                         <Heart size={18} fill={favorites.includes(song.id) ? 'currentColor' : 'none'} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (playlists.length === 0) {
+                            alert('Você ainda não tem playlists. Crie uma na página de Playlists primeiro!')
+                          } else {
+                            setPlaylistModalSong(song)
+                          }
+                        }}
+                        className="hide-on-mobile"
+                        style={{ color: 'var(--text-muted)', transition: 'color 0.2s', padding: '4px' }}
+                        title="Adicionar à Playlist"
+                      >
+                        <ListMusic size={18} />
                       </button>
                       <div style={{ position: 'relative' }}>
                         <button
@@ -354,26 +369,6 @@ export default function LibraryPage() {
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
                               <Pencil size={15} /> Renomear
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (playlists.length === 0) {
-                                  alert('Você ainda não tem playlists. Crie uma na página de Playlists primeiro!')
-                                } else {
-                                  setPlaylistModalSong(song)
-                                }
-                                setMenuSongId(null)
-                              }}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
-                                padding: '10px 12px', background: 'transparent', color: 'var(--text)',
-                                border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
-                                textAlign: 'left'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-3)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
-                              <ListMusic size={15} /> Adicionar à Playlist
                             </button>
                             <button
                               onClick={() => {

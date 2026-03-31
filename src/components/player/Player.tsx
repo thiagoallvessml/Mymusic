@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { usePlayerStore } from '@/store/playerStore'
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  Shuffle, Repeat, Repeat1, FileEdit, X, Music2
+  Shuffle, Repeat, Repeat1, FileEdit, X, Music2, Heart, ListMusic, CheckCircle2
 } from 'lucide-react'
 
 function fmt(s: number) {
@@ -18,8 +18,10 @@ export default function Player() {
     queue, currentIndex, isPlaying, volume, progress,
     shuffle, repeat, togglePlay, next, prev,
     setVolume, setProgress, toggleShuffle, cycleRepeat,
-    addToHistory
+    addToHistory, favorites, toggleFavorite, playlists, addSongToPlaylist
   } = usePlayerStore()
+
+  const [playlistModalOpen, setPlaylistModalOpen] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement>(null)
   const song = queue[currentIndex]
@@ -98,6 +100,29 @@ export default function Player() {
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {song.artist}
             </p>
+          </div>
+          
+          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
+            <button
+              onClick={() => toggleFavorite(song.id)}
+              style={{ color: favorites.includes(song.id) ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.2s', padding: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
+              title={favorites.includes(song.id) ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+            >
+              <Heart size={18} fill={favorites.includes(song.id) ? 'currentColor' : 'none'} />
+            </button>
+            <button
+              onClick={() => {
+                if (playlists.length === 0) {
+                  alert('Você ainda não tem playlists. Crie uma na página de Playlists primeiro!')
+                } else {
+                  setPlaylistModalOpen(true)
+                }
+              }}
+              style={{ color: 'var(--text-muted)', transition: 'color 0.2s', padding: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
+              title="Adicionar à Playlist"
+            >
+              <ListMusic size={18} />
+            </button>
           </div>
         </div>
 
@@ -294,6 +319,53 @@ export default function Player() {
           to { transform: translateX(0); }
         }
       `}} />
+      
+      {/* Add To Playlist Modal */}
+      {playlistModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'var(--bg-2)', padding: '24px', borderRadius: '16px', maxWidth: '400px', width: '90%', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Adicionar à Playlist</h3>
+              <button onClick={() => setPlaylistModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Selecione uma playlist para adicionar <strong>{song?.title}</strong>:
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+              {playlists.map(playlist => {
+                const isAdded = song ? playlist.songIds.includes(song.id) : false
+                return (
+                  <button
+                    key={playlist.id}
+                    disabled={isAdded}
+                    onClick={() => {
+                      if (song) addSongToPlaylist(playlist.id, song.id)
+                      setPlaylistModalOpen(false)
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                      padding: '16px', background: 'var(--bg-3)', border: '1px solid var(--border)',
+                      borderRadius: '12px', color: isAdded ? 'var(--text-muted)' : 'var(--text)',
+                      cursor: isAdded ? 'not-allowed' : 'pointer', transition: 'background 0.2s',
+                      opacity: isAdded ? 0.7 : 1
+                    }}
+                    onMouseEnter={e => { if (!isAdded) e.currentTarget.style.background = 'var(--bg-4)' }}
+                    onMouseLeave={e => { if (!isAdded) e.currentTarget.style.background = 'var(--bg-3)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <ListMusic size={18} color={isAdded ? "var(--text-muted)" : "var(--accent)"} />
+                      <span style={{ fontWeight: 600 }}>{playlist.name}</span>
+                    </div>
+                    {isAdded && <CheckCircle2 size={16} color="var(--text-muted)" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
