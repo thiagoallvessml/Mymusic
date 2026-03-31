@@ -195,7 +195,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Grid Layout below stats */}
-          <div className="dashboard-content-grid">
+          {songs.length > 0 && (
+            <div className="dashboard-content-grid">
             
             {/* Left Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -293,8 +294,8 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-
           </div>
+          )}
         </main>
       </div>
 
