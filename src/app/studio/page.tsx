@@ -162,6 +162,9 @@ export default function StudioPage() {
       setIsPlaying(true)
       setProgressMsg('')
       
+      // Limita prévia a 45 segundos
+      player.stop('+45')
+
       // Auto-pause preview when track ends
       player.onstop = () => setIsPlaying(false)
 
