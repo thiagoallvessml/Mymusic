@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { StudioTermsModal } from '@/components/studio/StudioTermsModal'
-import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info, Crown, ArrowUpRight, Lock } from 'lucide-react'
+import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info, Crown, ArrowUpRight, Lock, Menu } from 'lucide-react'
 import * as Tone from 'tone'
 
 interface Song {
@@ -78,6 +78,7 @@ export default function StudioPage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -331,10 +332,24 @@ export default function StudioPage() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100%', background: 'var(--bg)', color: 'var(--text)' }}>
-      <Sidebar isOpen={false} onClose={() => {}} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <main style={{ flex: 1, padding: '40px', maxWidth: '1200px' }} className="mobile-content-padding layout-main">
-        <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Estúdio</h1>
+      <div className="layout-main" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <header className="mobile-header-padding hide-on-desktop" style={{
+          display: 'flex', alignItems: 'center', padding: '24px 40px', background: 'var(--bg)',
+          position: 'sticky', top: 0, zIndex: 30
+        }}>
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            style={{ color: 'var(--text)', display: 'block' }}
+            className="mobile-hamburger"
+          >
+            <Menu size={24} />
+          </button>
+        </header>
+
+        <main style={{ flex: 1, padding: '0 40px 40px 40px', maxWidth: '1200px' }} className="mobile-content-padding">
+          <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Estúdio</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>Ajuste o tom das suas faixas salvando novas versões sem perder a velocidade final.</p>
 
         {/* Plan Status Banner */}
@@ -565,6 +580,7 @@ export default function StudioPage() {
           
         </div>
       </main>
+      </div>
       
       {/* Paywall Modal */}
       {showPaywall && (
@@ -616,6 +632,9 @@ export default function StudioPage() {
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .animate-spin { animation: spin 1s linear infinite; }
+        @media (min-width: 769px) {
+          .hide-on-desktop { display: none !important; }
+        }
       `}} />
 
       {/* Terms of Use Modal */}
