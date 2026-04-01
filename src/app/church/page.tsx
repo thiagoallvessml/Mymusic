@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useState, useRef } from 'react'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 
 type Song = {
   id: string
@@ -21,6 +21,9 @@ function fmt(s: number) {
 }
 
 export default function ChurchPage() {
+  const { data: session } = useSession()
+  const plan = (session?.user as any)?.plan || 'FREE'
+
   const [songs, setSongs] = useState<Song[]>([])
   const [filtered, setFiltered] = useState<Song[]>([])
   const [search, setSearch] = useState('')
@@ -332,7 +335,18 @@ export default function ChurchPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <button className="ch-logout-btn" onClick={() => signOut({ callbackUrl: '/login' })} title="Sair">⏻</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 12px', background: 'var(--bg3)', 
+            border: '1px solid var(--border)', borderRadius: '100px',
+            fontSize: '12px'
+          }}>
+            <span style={{ color: 'var(--text3)' }}>Plano:</span>
+            <strong style={{ color: 'var(--accent)', fontWeight: 700 }}>{plan}</strong>
+          </div>
+          <button className="ch-logout-btn" onClick={() => signOut({ callbackUrl: '/login' })} title="Sair">⏻</button>
+        </div>
       </header>
       
       <div className="ch-song-list">
