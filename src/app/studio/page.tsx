@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { StudioTermsModal } from '@/components/studio/StudioTermsModal'
 import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info, Crown, ArrowUpRight, Lock, Menu } from 'lucide-react'
-import * as Tone from 'tone'
+import { PitchShifter } from 'soundtouchjs'
 
 interface Song {
   id: string
@@ -103,9 +103,9 @@ export default function StudioPage() {
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Preview state
-  const [previewPlayer, setPreviewPlayer] = useState<Tone.Player | null>(null)
-  const [previewEffect, setPreviewEffect] = useState<Tone.PitchShift | null>(null)
+  const [shifter, setShifter] = useState<any>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const previewCtxRef = useRef<AudioContext | null>(null)
   
   const [showPaywall, setShowPaywall] = useState(false)
   
@@ -125,67 +125,79 @@ export default function StudioPage() {
     })
     
     return () => {
-      if (previewPlayer) {
-        previewPlayer.stop()
-        previewPlayer.dispose()
+      if (shifter) {
+        shifter.disconnect()
+        shifter.off()
       }
-      if (previewEffect) {
-        previewEffect.dispose()
+      if (previewCtxRef.current) {
+        previewCtxRef.current.close().catch(e => console.log(e))
       }
     }
-  }, [])
+  }, [shifter])
 
   useEffect(() => {
     setIsPlaying(false)
-    if (previewPlayer) previewPlayer.stop()
+    if (shifter) shifter.disconnect()
   }, [selectedSong, pitchShift])
 
   async function handlePreview() {
     if (!selectedSong) return
-    // Prévia é gratuita para todos os planos
     setErrorLine('')
     try {
-      await Tone.start()
-      
       if (isPlaying) {
-        previewPlayer?.stop()
+        if (shifter) shifter.disconnect()
         setIsPlaying(false)
         return
       }
 
       setProgressMsg('Carregando áudio para preview...')
-      if (previewPlayer) {
-        previewPlayer.dispose()
-      }
-      if (previewEffect) {
-        previewEffect.dispose()
+      if (shifter) {
+        shifter.disconnect()
+        shifter.off()
+        setShifter(null)
       }
 
-      // Use Tone.ToneAudioBuffer that has better codec support than raw decodeAudioData
-      const toneBuffer = new Tone.ToneAudioBuffer()
-      await toneBuffer.load(selectedSong.fileUrl)
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext
+      let ctx = previewCtxRef.current
+      if (!ctx || ctx.state === 'closed') {
+        ctx = new AudioContextCtor()
+        previewCtxRef.current = ctx
+      } else if (ctx.state === 'suspended') {
+        await ctx.resume()
+      }
 
-      const player = new Tone.Player(toneBuffer)
-      const pitch = new Tone.PitchShift({ pitch: pitchShift }).toDestination()
+      const response = await fetch(selectedSong.fileUrl)
+      if (!response.ok) throw new Error("Falha ao baixar música")
+      const arrayBuffer = await response.arrayBuffer()
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+
+      const newShifter = new (PitchShifter as any)(ctx, audioBuffer, 1024)
+      newShifter.tempo = 1
+      newShifter.pitchSemitones = pitchShift
       
-      player.connect(pitch)
+      const gainNode = ctx.createGain()
+      newShifter.connect(gainNode)
+      gainNode.connect(ctx.destination)
       
-      setPreviewPlayer(player)
-      setPreviewEffect(pitch)
-      
-      player.start()
+      setShifter(newShifter)
       setIsPlaying(true)
       setProgressMsg('')
-      
-      // Limita prévia a 45 segundos
-      player.stop('+45')
 
-      // Auto-pause preview when track ends
-      player.onstop = () => setIsPlaying(false)
+      newShifter.on('play', (d: any) => {
+        if (d.percentagePlayed >= 100) {
+           newShifter.disconnect()
+           setIsPlaying(false)
+        }
+      })
+      
+      setTimeout(() => {
+         newShifter.disconnect()
+         setIsPlaying(false)
+      }, 45000)
 
     } catch (err: any) {
       console.error('Preview error:', err)
-      setErrorLine('Erro ao carregar prévia. Formato de áudio pode não ser suportado pelo navegador.')
+      setErrorLine('Erro ao carregar prévia. Formato não suportado ou erro de rede.')
       setProgressMsg('')
       setIsPlaying(false)
     }
@@ -206,6 +218,53 @@ export default function StudioPage() {
     if (progressTimerRef.current) { clearInterval(progressTimerRef.current); progressTimerRef.current = null }
   }
 
+  async function renderOfflineSoundTouch(audioBuffer: AudioBuffer, semitones: number, onProgress: (pct: number) => void): Promise<AudioBuffer> {
+    const { SoundTouch, SimpleFilter, WebAudioBufferSource } = await import('soundtouchjs')
+    const source = new (WebAudioBufferSource as any)(audioBuffer)
+    const soundTouch = new (SoundTouch as any)()
+    soundTouch.pitchSemitones = semitones
+    const filter = new (SimpleFilter as any)(source, soundTouch)
+
+    const resultFrames = []
+    const buffer = new Float32Array(2048 * 2)
+    const totalFramesApprox = audioBuffer.length
+    let framesProcessed = 0
+
+    while (true) {
+      const numExtracted = filter.extract(buffer, 2048)
+      if (numExtracted === 0) break
+
+      const l = new Float32Array(numExtracted)
+      const r = new Float32Array(numExtracted)
+      for (let i = 0; i < numExtracted; i++) {
+        l[i] = buffer[i * 2]
+        r[i] = buffer[i * 2 + 1]
+      }
+      resultFrames.push({ l, r })
+      framesProcessed += numExtracted
+
+      if (resultFrames.length % 50 === 0) {
+        onProgress(Math.min(framesProcessed / totalFramesApprox, 1))
+        await new Promise(res => setTimeout(res, 0))
+      }
+    }
+
+    const outputLength = resultFrames.reduce((acc, val) => acc + val.l.length, 0)
+    const AudioContextCtor = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext
+    const outCtx = new AudioContextCtor(2, outputLength, audioBuffer.sampleRate)
+    const finalBuffer = outCtx.createBuffer(2, outputLength, audioBuffer.sampleRate)
+
+    let offset = 0
+    const finalL = finalBuffer.getChannelData(0)
+    const finalR = finalBuffer.getChannelData(1)
+    for (const chunk of resultFrames) {
+      finalL.set(chunk.l, offset)
+      finalR.set(chunk.r, offset)
+      offset += chunk.l.length
+    }
+    return finalBuffer
+  }
+
   async function processAndSave() {
     if (!selectedSong) return
     if (isProcessing) return
@@ -215,44 +274,39 @@ export default function StudioPage() {
     setProgressPct(0)
     
     try {
-      if (previewPlayer) previewPlayer.stop()
+      if (shifter) shifter.disconnect()
       setIsPlaying(false)
 
       // 0-15%: Download & decode
       setProgressMsg('Baixando e decodificando áudio original...')
       startSimulatedProgress(0, 15, 3000)
       
-      const toneBuffer = new Tone.ToneAudioBuffer()
-      await toneBuffer.load(selectedSong.fileUrl)
-      const audioBuffer = toneBuffer.get()
+      const AudioCtxCtor = window.AudioContext || (window as any).webkitAudioContext
+      const offlineCtx = new AudioCtxCtor()
       
-      if (!audioBuffer) throw new Error("Falha ao decodificar o áudio original")
+      const response = await fetch(selectedSong.fileUrl)
+      if (!response.ok) throw new Error("Falha ao baixar áudio")
+      const arrayBuffer = await response.arrayBuffer()
+      const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer)
+      const duration = audioBuffer.duration
+      
       stopSimulatedProgress()
       setProgressPct(15)
       
-      // 15-60%: Offline render (simulated based on audio duration)
-      setProgressMsg(`Renderizando tom modificado...`)
-      const duration = audioBuffer.duration
-      const estimatedRenderMs = Math.max(duration * 500, 2000) // rough estimate
-      startSimulatedProgress(15, 58, estimatedRenderMs)
+      // 15-60%: Offline render (async extraction)
+      setProgressMsg('Renderizando tom modificado (alta qualidade)...')
       
-      const renderedBuffer = await Tone.Offline(async () => {
-        const offlinePlayer = new Tone.Player(audioBuffer)
-        const offlinePitch = new Tone.PitchShift({ pitch: pitchShift }).toDestination()
-        offlinePlayer.connect(offlinePitch)
-        offlinePlayer.start(0)
-      }, duration)
+      const renderedBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift, (pct) => {
+         setProgressPct(15 + Math.round(pct * 45))
+      })
       
-      stopSimulatedProgress()
       setProgressPct(60)
 
       // 60-70%: WAV conversion
       setProgressMsg('Convertendo para formato WAV...')
       startSimulatedProgress(60, 70, 1000)
-      const rawAudioBuffer = renderedBuffer.get()
-      if (!rawAudioBuffer) throw new Error("A renderização falhou")
       
-      const wavBlob = audioBufferToWav(rawAudioBuffer)
+      const wavBlob = audioBufferToWav(renderedBuffer)
       const filename = `${selectedSong.title}_Tom_${pitchShift}.wav`
       stopSimulatedProgress()
       setProgressPct(70)
