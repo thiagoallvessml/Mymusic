@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { Crown, Music2, Zap, Infinity, Check, X, Sparkles } from 'lucide-react'
+import { Crown, Music2, Zap, Check, X, Sparkles } from 'lucide-react'
 
 const PLANS = [
   {

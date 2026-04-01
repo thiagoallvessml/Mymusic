@@ -20,6 +20,7 @@ function fmt(s: number) {
 
 export default function FavoritesPage() {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const { playSong, setQueue, currentIndex, queue, isPlaying, togglePlay, favorites, toggleFavorite, playlists, addSongToPlaylist } = usePlayerStore()
 
   const [songs, setSongs] = useState<Song[]>([])
