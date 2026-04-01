@@ -276,7 +276,9 @@ export default function StudioPage() {
     setProgressPct(0)
     
     try {
-      if (shifter) shifter.disconnect()
+      if (shifter && shifter.stop) {
+        try { shifter.stop() } catch(e) {}
+      }
       setIsPlaying(false)
 
       // 0-15%: Download & decode
@@ -284,43 +286,70 @@ export default function StudioPage() {
       startSimulatedProgress(0, 15, 3000)
       
       const AudioCtxCtor = window.AudioContext || (window as any).webkitAudioContext
-      const offlineCtx = new AudioCtxCtor()
+      const decodeCtx = new AudioCtxCtor()
       
       const response = await fetch(selectedSong.fileUrl)
       if (!response.ok) throw new Error("Falha ao baixar áudio")
       const arrayBuffer = await response.arrayBuffer()
-      const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer)
+      const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer)
       const duration = audioBuffer.duration
+      
+      // Close the temporary decode context
+      decodeCtx.close().catch(() => {})
       
       stopSimulatedProgress()
       setProgressPct(15)
       
-      // 15-60%: Offline render (async extraction)
+      // 15-55%: Offline render with SoundTouch
       setProgressMsg('Renderizando tom modificado (alta qualidade)...')
+      startSimulatedProgress(15, 55, Math.max(duration * 400, 2000))
       
       const renderedBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift)
       
+      stopSimulatedProgress()
+      setProgressPct(55)
+
+      // 55-60%: WAV intermediate
+      setProgressMsg('Gerando arquivo intermediário...')
+      const wavBlob = audioBufferToWav(renderedBuffer)
       setProgressPct(60)
 
-      // 60-70%: WAV conversion
-      setProgressMsg('Convertendo para formato WAV...')
-      startSimulatedProgress(60, 70, 1000)
+      // 60-75%: FFmpeg WAV → MP3
+      setProgressMsg('Convertendo para MP3 com FFmpeg (pode levar alguns segundos)...')
+      startSimulatedProgress(60, 75, 8000)
       
-      const wavBlob = audioBufferToWav(renderedBuffer)
-      const filename = `${selectedSong.title}_Tom_${pitchShift}.wav`
+      const { FFmpeg } = await import('@ffmpeg/ffmpeg')
+      
+      const ffmpeg = new FFmpeg()
+      // Load single-threaded core from CDN (no COOP/COEP headers needed)
+      await ffmpeg.load({
+        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+        wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
+      })
+      
+      const wavData = new Uint8Array(await wavBlob.arrayBuffer())
+      await ffmpeg.writeFile('input.wav', wavData)
+      await ffmpeg.exec(['-i', 'input.wav', '-codec:a', 'libmp3lame', '-b:a', '192k', 'output.mp3'])
+      const mp3Data = await ffmpeg.readFile('output.mp3')
+      const mp3Blob = new Blob([mp3Data], { type: 'audio/mpeg' })
+      
+      ffmpeg.terminate()
+      
       stopSimulatedProgress()
-      setProgressPct(70)
+      setProgressPct(75)
+      
+      const filename = `${selectedSong.title}_Tom_${pitchShift}.mp3`
 
-      // 70-75%: Get presigned URL
+      // 75-80%: Get presigned URL
       setProgressMsg('Preparando upload...')
-      setProgressPct(72)
+      setProgressPct(77)
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           filename,
-          contentType: 'audio/wav',
-          size: wavBlob.size,
+          contentType: 'audio/mpeg',
+          size: mp3Blob.size,
           isStudioAction: true
         })
       })
@@ -328,15 +357,15 @@ export default function StudioPage() {
       const uploadData = await uploadRes.json()
       if (!uploadRes.ok) throw new Error(uploadData.error || "Erro ao gerar URL de upload")
       const { uploadUrl, key } = uploadData
-      setProgressPct(75)
+      setProgressPct(80)
 
-      // 75-90%: Upload to R2
-      setProgressMsg('Enviando arquivo para nuvem...')
-      startSimulatedProgress(75, 88, 4000)
+      // 80-90%: Upload to R2
+      setProgressMsg('Enviando MP3 para nuvem...')
+      startSimulatedProgress(80, 88, 4000)
       const putRes = await fetch(uploadUrl, {
         method: 'PUT',
-        body: wavBlob,
-        headers: { 'Content-Type': 'audio/wav' }
+        body: mp3Blob,
+        headers: { 'Content-Type': 'audio/mpeg' }
       })
       
       if (!putRes.ok) throw new Error("Erro ao enviar arquivo para o armazenamento")
@@ -354,8 +383,8 @@ export default function StudioPage() {
           artist: selectedSong.artist,
           fileKey: key,
           duration: Math.round(duration),
-          size: wavBlob.size,
-          mimeType: 'audio/wav',
+          size: mp3Blob.size,
+          mimeType: 'audio/mpeg',
           isStudioAction: true
         })
       })
@@ -364,7 +393,7 @@ export default function StudioPage() {
       if (!metaRes.ok) throw new Error(metaData.error || "Erro ao salvar metadados")
       
       setProgressPct(100)
-      setProgressMsg('Salvo com sucesso na sua biblioteca!')
+      setProgressMsg('MP3 salvo com sucesso na sua biblioteca!')
       setTimeout(() => {
         setProgressMsg('')
         setProgressPct(0)
