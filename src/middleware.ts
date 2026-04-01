@@ -4,13 +4,28 @@ import { getToken } from 'next-auth/jwt'
 export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
   const isAuth = !!token
-  const isProtectedPath = req.nextUrl.pathname.startsWith('/library') || req.nextUrl.pathname.startsWith('/church') || req.nextUrl.pathname.startsWith('/dashboard')
+  const path = req.nextUrl.pathname
 
-  if (isProtectedPath && !isAuth) {
+  const isAuthPage = path === '/login' || path === '/register'
+  
+  // Páginas de auth (se já estiver logado, manda pro respectivo painel)
+  if (isAuthPage) {
+    if (isAuth) {
+      if (token?.role === 'CHURCH') {
+        return NextResponse.redirect(new URL('/church', req.url))
+      }
+      return NextResponse.redirect(new URL('/library', req.url))
+    }
+    return NextResponse.next()
+  }
+
+  // A partir daqui, todas as outras páginas que o middleware pega são protegidas
+  if (!isAuth) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  if (isAuth && token?.role === 'CHURCH' && !req.nextUrl.pathname.startsWith('/church')) {
+  // Usuários do tipo CHURCH ficam restritos APENAS à rota /church
+  if (isAuth && token?.role === 'CHURCH' && path !== '/church') {
     return NextResponse.redirect(new URL('/church', req.url))
   }
 
@@ -18,5 +33,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/library/:path*', '/dashboard/:path*', '/church/:path*'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }
