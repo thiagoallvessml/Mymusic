@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { StudioTermsModal } from '@/components/studio/StudioTermsModal'
 import { Search, Music2, Settings2, Download, Play, Pause, AlertCircle, Loader2, Info, Crown, ArrowUpRight, Lock, Menu } from 'lucide-react'
-import { PitchShifter } from 'soundtouchjs'
+import { PitchShifter, SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'
 
 interface Song {
   id: string
@@ -172,13 +172,19 @@ export default function StudioPage() {
         await ctx.resume()
       }
 
+      setProgressMsg('Baixando áudio...')
       const response = await fetch(selectedSong.fileUrl)
-      if (!response.ok) throw new Error("Falha ao baixar música")
+      if (!response.ok) throw new Error(`Falha ao baixar música (status ${response.status})`)
       const arrayBuffer = await response.arrayBuffer()
+      
+      setProgressMsg('Decodificando áudio...')
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
       
+      setProgressMsg('Processando pitch (pode levar alguns segundos)...')
       const maxFramesForPreview = 45 * audioBuffer.sampleRate
-      const previewBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift, () => {}, maxFramesForPreview)
+      const previewBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift, maxFramesForPreview)
+
+      if (previewBuffer.length === 0) throw new Error('Nenhum áudio foi gerado pelo processador')
 
       const sourceNode = ctx.createBufferSource()
       sourceNode.buffer = previewBuffer
@@ -198,7 +204,7 @@ export default function StudioPage() {
 
     } catch (err: any) {
       console.error('Preview error:', err)
-      setErrorLine('Erro ao carregar prévia. Formato não suportado ou erro de rede.')
+      setErrorLine(`Erro na prévia: ${err.message || 'Falha desconhecida'}`)
       setProgressMsg('')
       setIsPlaying(false)
     }
@@ -219,52 +225,50 @@ export default function StudioPage() {
     if (progressTimerRef.current) { clearInterval(progressTimerRef.current); progressTimerRef.current = null }
   }
 
-  async function renderOfflineSoundTouch(audioBuffer: AudioBuffer, semitones: number, onProgress: (pct: number) => void, maxFramesApprox?: number): Promise<AudioBuffer> {
-    const { SoundTouch, SimpleFilter, WebAudioBufferSource } = await import('soundtouchjs')
+  async function renderOfflineSoundTouch(audioBuffer: AudioBuffer, semitones: number, maxFrames?: number): Promise<AudioBuffer> {
     const source = new (WebAudioBufferSource as any)(audioBuffer)
-    const soundTouch = new (SoundTouch as any)()
-    soundTouch.pitchSemitones = semitones
-    const filter = new (SimpleFilter as any)(source, soundTouch)
+    const st = new (SoundTouch as any)()
+    st.pitchSemitones = semitones
+    const filter = new (SimpleFilter as any)(source, st)
 
-    const resultFrames = []
-    const buffer = new Float32Array(2048 * 2)
-    const totalFramesApprox = maxFramesApprox ? Math.min(audioBuffer.length, maxFramesApprox) : audioBuffer.length
-    let framesProcessed = 0
+    const chunks: { l: Float32Array; r: Float32Array }[] = []
+    const extractBuffer = new Float32Array(4096)
+    const limit = maxFrames || audioBuffer.length
+    let totalExtracted = 0
 
-    while (true) {
-      if (maxFramesApprox && framesProcessed >= maxFramesApprox) break
-      const numExtracted = filter.extract(buffer, 2048)
-      if (numExtracted === 0) break
+    while (totalExtracted < limit) {
+      const n = filter.extract(extractBuffer, 2048)
+      if (n === 0) break
 
-      const l = new Float32Array(numExtracted)
-      const r = new Float32Array(numExtracted)
-      for (let i = 0; i < numExtracted; i++) {
-        l[i] = buffer[i * 2]
-        r[i] = buffer[i * 2 + 1]
+      const l = new Float32Array(n)
+      const r = new Float32Array(n)
+      for (let i = 0; i < n; i++) {
+        l[i] = extractBuffer[i * 2]
+        r[i] = extractBuffer[i * 2 + 1]
       }
-      resultFrames.push({ l, r })
-      framesProcessed += numExtracted
+      chunks.push({ l, r })
+      totalExtracted += n
 
-      if (resultFrames.length % 50 === 0) {
-        onProgress(Math.min(framesProcessed / totalFramesApprox, 1))
+      // yield to the UI thread every 50 chunks
+      if (chunks.length % 50 === 0) {
         await new Promise(res => setTimeout(res, 0))
       }
     }
 
-    const outputLength = resultFrames.reduce((acc, val) => acc + val.l.length, 0)
-    const AudioContextCtor = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext
-    const outCtx = new AudioContextCtor(2, outputLength, audioBuffer.sampleRate)
-    const finalBuffer = outCtx.createBuffer(2, outputLength, audioBuffer.sampleRate)
+    const outputLength = chunks.reduce((sum, c) => sum + c.l.length, 0)
+    if (outputLength === 0) throw new Error('SoundTouch não extraiu nenhum frame de áudio')
 
-    let offset = 0
-    const finalL = finalBuffer.getChannelData(0)
-    const finalR = finalBuffer.getChannelData(1)
-    for (const chunk of resultFrames) {
-      finalL.set(chunk.l, offset)
-      finalR.set(chunk.r, offset)
-      offset += chunk.l.length
+    const offCtx = new OfflineAudioContext(2, outputLength, audioBuffer.sampleRate)
+    const outBuf = offCtx.createBuffer(2, outputLength, audioBuffer.sampleRate)
+    const outL = outBuf.getChannelData(0)
+    const outR = outBuf.getChannelData(1)
+    let off = 0
+    for (const c of chunks) {
+      outL.set(c.l, off)
+      outR.set(c.r, off)
+      off += c.l.length
     }
-    return finalBuffer
+    return outBuf
   }
 
   async function processAndSave() {
@@ -298,9 +302,7 @@ export default function StudioPage() {
       // 15-60%: Offline render (async extraction)
       setProgressMsg('Renderizando tom modificado (alta qualidade)...')
       
-      const renderedBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift, (pct) => {
-         setProgressPct(15 + Math.round(pct * 45))
-      })
+      const renderedBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift)
       
       setProgressPct(60)
 
