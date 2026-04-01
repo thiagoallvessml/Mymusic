@@ -124,22 +124,18 @@ export default function StudioPage() {
       if (Array.isArray(d)) setSongs(d)
     })
     
+    // Cleanup AudioContext only when component unmounts
     return () => {
-      if (shifter && shifter.stop) {
-        try { shifter.stop() } catch(e) {}
-        try { shifter.disconnect() } catch(e) {}
-      }
-      if (previewCtxRef.current) {
-        previewCtxRef.current.close().catch(e => console.log(e))
+      if (previewCtxRef.current && previewCtxRef.current.state !== 'closed') {
+        previewCtxRef.current.close().catch(() => {})
       }
     }
-  }, [shifter])
+  }, [])
 
   useEffect(() => {
     setIsPlaying(false)
     if (shifter && shifter.stop) {
       try { shifter.stop() } catch(e) {}
-      try { shifter.disconnect() } catch(e) {}
     }
   }, [selectedSong, pitchShift])
 
