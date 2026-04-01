@@ -125,9 +125,9 @@ export default function StudioPage() {
     })
     
     return () => {
-      if (shifter) {
-        shifter.disconnect()
-        shifter.off()
+      if (shifter && shifter.stop) {
+        try { shifter.stop() } catch(e) {}
+        try { shifter.disconnect() } catch(e) {}
       }
       if (previewCtxRef.current) {
         previewCtxRef.current.close().catch(e => console.log(e))
@@ -137,7 +137,10 @@ export default function StudioPage() {
 
   useEffect(() => {
     setIsPlaying(false)
-    if (shifter) shifter.disconnect()
+    if (shifter && shifter.stop) {
+      try { shifter.stop() } catch(e) {}
+      try { shifter.disconnect() } catch(e) {}
+    }
   }, [selectedSong, pitchShift])
 
   async function handlePreview() {
@@ -145,15 +148,18 @@ export default function StudioPage() {
     setErrorLine('')
     try {
       if (isPlaying) {
-        if (shifter) shifter.disconnect()
+        if (shifter && shifter.stop) {
+          try { shifter.stop() } catch(e) {}
+          try { shifter.disconnect() } catch(e) {}
+        }
         setIsPlaying(false)
         return
       }
 
-      setProgressMsg('Carregando áudio para preview...')
-      if (shifter) {
-        shifter.disconnect()
-        shifter.off()
+      setProgressMsg('Carregando prévia...')
+      if (shifter && shifter.stop) {
+        try { shifter.stop() } catch(e) {}
+        try { shifter.disconnect() } catch(e) {}
         setShifter(null)
       }
 
@@ -170,30 +176,25 @@ export default function StudioPage() {
       if (!response.ok) throw new Error("Falha ao baixar música")
       const arrayBuffer = await response.arrayBuffer()
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+      
+      const maxFramesForPreview = 45 * audioBuffer.sampleRate
+      const previewBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift, () => {}, maxFramesForPreview)
 
-      const newShifter = new (PitchShifter as any)(ctx, audioBuffer, 1024)
-      newShifter.tempo = 1
-      newShifter.pitchSemitones = pitchShift
+      const sourceNode = ctx.createBufferSource()
+      sourceNode.buffer = previewBuffer
       
       const gainNode = ctx.createGain()
-      newShifter.connect(gainNode)
+      sourceNode.connect(gainNode)
       gainNode.connect(ctx.destination)
       
-      setShifter(newShifter)
+      setShifter(sourceNode)
+      sourceNode.start()
       setIsPlaying(true)
       setProgressMsg('')
 
-      newShifter.on('play', (d: any) => {
-        if (d.percentagePlayed >= 100) {
-           newShifter.disconnect()
-           setIsPlaying(false)
-        }
-      })
-      
-      setTimeout(() => {
-         newShifter.disconnect()
+      sourceNode.onended = () => {
          setIsPlaying(false)
-      }, 45000)
+      }
 
     } catch (err: any) {
       console.error('Preview error:', err)
@@ -218,7 +219,7 @@ export default function StudioPage() {
     if (progressTimerRef.current) { clearInterval(progressTimerRef.current); progressTimerRef.current = null }
   }
 
-  async function renderOfflineSoundTouch(audioBuffer: AudioBuffer, semitones: number, onProgress: (pct: number) => void): Promise<AudioBuffer> {
+  async function renderOfflineSoundTouch(audioBuffer: AudioBuffer, semitones: number, onProgress: (pct: number) => void, maxFramesApprox?: number): Promise<AudioBuffer> {
     const { SoundTouch, SimpleFilter, WebAudioBufferSource } = await import('soundtouchjs')
     const source = new (WebAudioBufferSource as any)(audioBuffer)
     const soundTouch = new (SoundTouch as any)()
@@ -227,10 +228,11 @@ export default function StudioPage() {
 
     const resultFrames = []
     const buffer = new Float32Array(2048 * 2)
-    const totalFramesApprox = audioBuffer.length
+    const totalFramesApprox = maxFramesApprox ? Math.min(audioBuffer.length, maxFramesApprox) : audioBuffer.length
     let framesProcessed = 0
 
     while (true) {
+      if (maxFramesApprox && framesProcessed >= maxFramesApprox) break
       const numExtracted = filter.extract(buffer, 2048)
       if (numExtracted === 0) break
 
