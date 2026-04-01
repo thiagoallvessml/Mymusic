@@ -281,57 +281,78 @@ export default function StudioPage() {
       }
       setIsPlaying(false)
 
-      // 0-15%: Download & decode
-      setProgressMsg('Baixando e decodificando áudio original...')
+      // 0-15%: Download original file
+      setProgressMsg('Baixando áudio original...')
       startSimulatedProgress(0, 15, 3000)
-      
-      const AudioCtxCtor = window.AudioContext || (window as any).webkitAudioContext
-      const decodeCtx = new AudioCtxCtor()
       
       const response = await fetch(selectedSong.fileUrl)
       if (!response.ok) throw new Error("Falha ao baixar áudio")
-      const arrayBuffer = await response.arrayBuffer()
-      const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer)
-      const duration = audioBuffer.duration
-      
-      // Close the temporary decode context
-      decodeCtx.close().catch(() => {})
+      const originalData = new Uint8Array(await response.arrayBuffer())
       
       stopSimulatedProgress()
       setProgressPct(15)
-      
-      // 15-55%: Offline render with SoundTouch
-      setProgressMsg('Renderizando tom modificado (alta qualidade)...')
-      startSimulatedProgress(15, 55, Math.max(duration * 400, 2000))
-      
-      const renderedBuffer = await renderOfflineSoundTouch(audioBuffer, pitchShift)
-      
-      stopSimulatedProgress()
-      setProgressPct(55)
 
-      // 55-60%: WAV intermediate
-      setProgressMsg('Gerando arquivo intermediário...')
-      const wavBlob = audioBufferToWav(renderedBuffer)
-      setProgressPct(60)
-
-      // 60-75%: FFmpeg WAV → MP3
-      setProgressMsg('Convertendo para MP3 com FFmpeg (pode levar alguns segundos)...')
-      startSimulatedProgress(60, 75, 8000)
+      // 15-25%: Load FFmpeg
+      setProgressMsg('Carregando motor de processamento FFmpeg...')
+      startSimulatedProgress(15, 25, 3000)
       
       const { FFmpeg } = await import('@ffmpeg/ffmpeg')
-      
       const ffmpeg = new FFmpeg()
-      // Load single-threaded core from CDN (no COOP/COEP headers needed)
       await ffmpeg.load({
         coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
         wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
       })
       
-      const wavData = new Uint8Array(await wavBlob.arrayBuffer())
-      await ffmpeg.writeFile('input.wav', wavData)
-      await ffmpeg.exec(['-i', 'input.wav', '-codec:a', 'libmp3lame', '-b:a', '192k', 'output.mp3'])
+      stopSimulatedProgress()
+      setProgressPct(25)
+
+      // 25-70%: FFmpeg pitch shift + MP3 encode (one pass)
+      setProgressMsg('Processando tom com FFmpeg (qualidade de estúdio)...')
+      startSimulatedProgress(25, 70, Math.max((selectedSong.duration || 180) * 300, 5000))
+
+      // Detect file extension from URL
+      const urlPath = new URL(selectedSong.fileUrl).pathname
+      const ext = urlPath.split('.').pop()?.toLowerCase() || 'mp3'
+      const inputFile = `input.${ext}`
+      
+      await ffmpeg.writeFile(inputFile, originalData)
+
+      // Build the audio filter for pitch shifting
+      // asetrate: changes pitch by altering sample rate (rate = 2^(semitones/12))
+      // aresample: resamples back to 44100 to normalize sample rate
+      // atempo: compensates the speed change (tempo = 2^(-semitones/12))
+      // Combined, this shifts pitch without changing speed
+      const rateFactor = Math.pow(2, pitchShift / 12)
+      const tempoFactor = 1 / rateFactor
+      
+      // atempo only accepts 0.5-100.0, so chain multiple for extreme values
+      let atempoFilters: string[] = []
+      let remaining = tempoFactor
+      while (remaining < 0.5) {
+        atempoFilters.push('atempo=0.5')
+        remaining /= 0.5
+      }
+      while (remaining > 2.0) {
+        atempoFilters.push('atempo=2.0')
+        remaining /= 2.0
+      }
+      atempoFilters.push(`atempo=${remaining.toFixed(6)}`)
+
+      const filterChain = `asetrate=44100*${rateFactor.toFixed(6)},aresample=44100,${atempoFilters.join(',')}`
+      
+      await ffmpeg.exec([
+        '-i', inputFile,
+        '-af', filterChain,
+        '-codec:a', 'libmp3lame',
+        '-b:a', '192k',
+        '-y', 'output.mp3'
+      ])
+      
       const mp3Data = await ffmpeg.readFile('output.mp3')
       const mp3Blob = new Blob([mp3Data], { type: 'audio/mpeg' })
+      
+      // Get duration from original
+      const duration = selectedSong.duration || 0
       
       ffmpeg.terminate()
       
