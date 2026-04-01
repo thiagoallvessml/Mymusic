@@ -7,8 +7,8 @@ type Song = {
   title?: string
   artist?: string
   album?: string
-  cover_path?: string
-  audio_path?: string
+  coverUrl?: string
+  fileUrl?: string
   lyrics?: string
   is_favorite?: boolean
 }
@@ -359,7 +359,7 @@ export default function ChurchPage() {
                   onClick={() => playSong(originIndex)}
                 >
                   <div className="ch-song-thumb">
-                    {s.cover_path ? <img src={s.cover_path} alt="" /> : '🎵'}
+                    {s.coverUrl ? <img src={s.coverUrl} alt="" /> : '🎵'}
                   </div>
                   <div className="ch-song-info">
                     <div className="ch-song-title">{s.title || 'Sem título'}</div>
@@ -377,7 +377,7 @@ export default function ChurchPage() {
       <div className="ch-player">
         <div className="ch-player-info">
           <div className="ch-player-cover">
-            {currentSong?.cover_path ? <img src={currentSong.cover_path} alt="" /> : '🎵'}
+            {currentSong?.coverUrl ? <img src={currentSong.coverUrl} alt="" /> : '🎵'}
           </div>
           <div className="ch-player-meta">
             <div className="ch-player-title">{currentSong?.title || 'Nenhuma música'}</div>
@@ -452,7 +452,7 @@ export default function ChurchPage() {
         <div className="ch-lyrics-body">
           <div className="ch-lyrics-song-info">
             <div className="ch-lyrics-cover-sm">
-              {currentSong?.cover_path ? <img src={currentSong.cover_path} alt="" /> : '🎵'}
+              {currentSong?.coverUrl ? <img src={currentSong.coverUrl} alt="" /> : '🎵'}
             </div>
             <div>
               <div className="ch-lyrics-song-name">{currentSong?.title || '—'}</div>
@@ -467,7 +467,7 @@ export default function ChurchPage() {
       
       <audio 
         ref={audioRef}
-        src={currentSong?.audio_path || undefined}
+        src={currentSong?.fileUrl || undefined}
         preload="metadata"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
